@@ -36,4 +36,4 @@ Only checkouts that include the gitignored `tests/` directory can run `.venv/bin
 | `cvfmt from-url` | Import HTML CV, JSON Resume, or raw `cv-md/1.0` URL |
 | `cvfmt version` | Print installed package version |
 
-`linkedin` and `from-url` are implemented in v0.1.0 but not yet reflected in [spec-pdf-renderer.md](./spec-pdf-renderer.md) (spec sync is on the backlog). Other edge cases live in that spec where documented.
+Full flag tables and importer behavior: [spec-pdf-renderer.md](./spec-pdf-renderer.md).

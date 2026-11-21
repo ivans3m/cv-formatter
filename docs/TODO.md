@@ -38,12 +38,12 @@ Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewr
 - [x] **End-to-end Extended Mode Skill Test** — Tested `skills/cv-formatter` 2-round guided interview on Ivan's real CV (`ivan.diuldia.com/cv/`) tailored for a Netherlands Fractional CMO role, producing a validated, verified 2-page Warm Editorial PDF.
 - [x] **Code Review & Hardening Pass** — Fixed LinkedIn `Profile.pdf` overwrite guard, capped `fetch_url` at 5 MB, added clean YAML/Pydantic CLI error handling, narrowed Typst font fallback, fixed `YYYY-MM` HTML date splitting, fixed `UNRESOLVED_TODO` line numbers and `[TODO]` email allowance, deduplicated `cli.py`, prevented orphan splits on compact `Skills`/`Languages` sections, and eliminated pytest warnings.
 - [x] **Documentation sync (post-GitHub)** — Root and `docs/` README indexes updated for public repo layout, MIT license, local-only `tests/` / `.agents/`, CLI quickstart, and 22-test local verification story.
+- [x] **Sync `spec-pdf-renderer.md` with v0.1.0 CLI** — Documented `linkedin`, `from-url`, `version`, importer flags, exit codes, URL fetch limits; fixed research/spec cross-links (`../research/…`, relative `docs/` paths; removed `file://` URLs).
 
 ---
 
 ## Up Next
 
-- [ ] **Sync `spec-pdf-renderer.md` with v0.1.0 CLI** — Document `linkedin`, `from-url`, and current flags; remove local `file://` research links for GitHub readers.
 - [ ] **Refresh public contributor docs** — Optional: `CONTRIBUTING.md`, issue templates, and a minimal GitHub Action that lints/packages without the private `tests/` tree (or restore `tests/` to the repo when ready for CI).
 - *(All v1 feature Up Next items complete; see Backlog for product work.)*
 

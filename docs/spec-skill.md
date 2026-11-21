@@ -2,7 +2,7 @@
 
 **Status:** Draft v1.0  
 **Standard:** Open Agent Skills Specification ([agentskills.io](https://agentskills.io/specification))  
-**Output Contract:** Produces valid `cv-md/1.0` Markdown files defined in [spec-cv-markdown.md](file:///Users/s3m/Projects/CV%20formatter/docs/spec-cv-markdown.md).
+**Output Contract:** Produces valid `cv-md/1.0` Markdown files defined in [spec-cv-markdown.md](./spec-cv-markdown.md).
 
 ---
 

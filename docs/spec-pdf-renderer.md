@@ -1,9 +1,10 @@
 # Specification: Markdown-to-PDF Local CLI (`cvfmt`)
 
-**Status:** Draft v1.0  
+**Status:** Implemented v1.0 (shipped in package version `0.1.0`)  
 **Stack:** Python 3.11+ + bundled `typst` compiler (`typst` PyPI wheel)  
 **Default Typography:** IBM Plex Sans (open-source, bundled with the CLI package)  
-**Default Page Size:** A4 (`210 × 297 mm`), optional US Letter (`letter`)
+**Default Page Size:** A4 (`210 × 297 mm`), optional US Letter (`letter`)  
+**Install:** `pip install -e ".[dev]"` from the project root (see [README.md](../README.md))
 
 ---
 
@@ -23,28 +24,92 @@
 
 ## 2. CLI Interface
 
-Proposed command name: `cvfmt` (invocable via `uv run cvfmt` or installed via `uv tool install` / `pipx`).
+Command name: `cvfmt` (console script from `pyproject.toml`; invocable after `pip install -e .` or via `python -m cvfmt.cli`).
 
-### Commands
+### Commands (v0.1.0)
 
 ```bash
 # Validate a cv-md/1.0 file (schema + ATS/LLM lint checks)
-cvfmt validate cv.md
+cvfmt validate cv.md [--allow-todos] [--strict]
 
-# Render cv.md to cv.pdf (validates first by default)
-cvfmt render cv.md [-o output.pdf] [--paper a4|letter] [--accent #RRGGBB] [--allow-todos] [--verify]
+# Render cv.md to PDF (validates before compile)
+cvfmt render cv.md [-o output.pdf] [--paper a4|letter] [--accent #RRGGBB] [--allow-todos] [--strict] [--verify]
 
 # Scaffold a starter EU cv-md/1.0 file
-cvfmt init [path]
+cvfmt init [path] [--force]
+
+# Import LinkedIn "Save to PDF", GDPR export (.zip), or CSV folder → cv-md/1.0 (optional PDF)
+cvfmt linkedin Profile.pdf [-o cv.md] [--pdf] [-o cv.pdf] [--paper a4|letter] [--accent #RRGGBB] [--verify]
+cvfmt linkedin linkedin-export.zip --pdf -o cv.pdf --verify
+
+# Import public HTML CV page, JSON Resume URL, or raw cv-md/1.0 URL → cv-md/1.0 (optional PDF)
+cvfmt from-url https://example.com/cv/ [-o cv.md] [--pdf] [-o cv.pdf] [--paper a4|letter] [--accent #RRGGBB] [--verify]
+
+# Print installed version
+cvfmt version
 ```
 
-### Flags & Exit Codes
-- `--paper a4|letter`: Overrides the `paper` frontmatter value.
-- `--accent #RRGGBB`: Overrides the Warm Editorial accent color (default `#71717A` light grey; accepts 6-digit hex with or without `#`, also configurable via `accent` in frontmatter).
-- `--verify`: After generating the PDF, automatically runs the text-layer round-trip check (`pypdf`/`pdfplumber` or `pdftotext`) and reports any extraction anomalies, page count, and link count.
-- `--allow-todos`: Allows rendering even if `[TODO: ...]` markers exist (useful for draft previews).
-- `--strict`: Treats lint warnings (non-canonical headings, >2 pages, ungrounded skills) as non-zero exit errors.
-- **Exit codes**: `0` = success, `1` = validation/schema error, `2` = compilation or verification failure.
+### `validate`
+
+| Flag | Description |
+| :--- | :--- |
+| `--allow-todos` | Permit `[TODO: ...]` placeholders without hard errors. |
+| `--strict` | Treat lint warnings as errors (exit `1`). |
+
+### `render`
+
+| Flag | Description |
+| :--- | :--- |
+| `-o`, `--output` | Output PDF path (default: `<stem>.pdf` next to input). |
+| `--paper a4\|letter` | Overrides YAML `paper` frontmatter. |
+| `--accent #RRGGBB` | Warm Editorial accent (default `#71717A`; 6-digit hex with or without `#`; also settable via frontmatter `accent`). |
+| `--allow-todos` | Allow rendering with `[TODO: ...]` markers. |
+| `--strict` | Treat warnings as errors before compile. |
+| `--verify` | After PDF generation, run text-layer round-trip check (`pypdf` / `pdfplumber`). |
+
+### `init`
+
+| Flag | Description |
+| :--- | :--- |
+| `--force` | Overwrite an existing starter file. |
+
+### `linkedin`
+
+Accepts LinkedIn **Save to PDF** (`Profile.pdf`), official **Data Export** (`.zip`), or a folder of GDPR CSV exports. Writes `cv-md/1.0` Markdown; with `--pdf`, also renders Warm Editorial PDF.
+
+| Flag | Description |
+| :--- | :--- |
+| `-o`, `--output` | Output `.md` path, or `.pdf` when `--pdf` is set. Defaults derived from source name (`Profile.pdf` → `Profile-cv.pdf` + sidecar `.md`). |
+| `--pdf` | Compile PDF after import (validates imported MD first). |
+| `--paper`, `--accent`, `--verify` | Same semantics as `render` when `--pdf` is used. |
+
+**Guards:** Refuses to overwrite the input `.pdf` when output would collide with the source path.
+
+### `from-url`
+
+Fetches a public URL (max **5 MB** response) and converts:
+
+- Raw `cv-md/1.0` Markdown URLs
+- [JSON Resume](https://jsonresume.org/) `.json` documents
+- Simple HTML CV pages (heuristic extraction)
+
+LinkedIn profile URLs that hit an auth wall exit `1` with instructions to use `cvfmt linkedin` on a saved PDF/export instead.
+
+| Flag | Description |
+| :--- | :--- |
+| `-o`, `--output` | Output path (default `cv-imported.md` or `cv-imported.pdf` when `--pdf`). |
+| `--pdf` | Compile PDF after import. |
+| `--paper`, `--accent`, `--verify` | Same as `linkedin --pdf`. |
+
+HTTP client identifies as `cvfmt/0.1 (+https://github.com/ivans3m/cv-formatter)`.
+
+### Exit codes (all commands)
+
+| Code | Meaning |
+| :--- | :--- |
+| `0` | Success. |
+| `1` | Validation/schema/import error, or `--strict` warnings on `validate`. |
+| `2` | Typst compilation failure or `--verify` text-layer check failure. |
 
 ---
 
@@ -114,7 +179,7 @@ cv.pdf
 
 ## 5. Verification & Quality Gates (v1 Acceptance Criteria)
 
-Before v1 is considered complete, the CLI must pass all checks from [07-evaluation-framework.md](file:///Users/s3m/Projects/CV%20formatter/research/07-evaluation-framework.md) across all 4 golden EU fixtures:
+v1 acceptance uses the three-layer framework in [07-evaluation-framework.md](../research/07-evaluation-framework.md). The **22-test** local `pytest` suite and **4 golden EU fixtures** live under `tests/` (gitignored on the public GitHub repo; maintainer checkouts only). Criteria:
 1. Zero schema/lint errors on valid fixtures; expected errors caught on invalid fixtures.
 2. `pdftotext` and `pdfplumber` extract 100% of characters (including EU diacritics and `fi`/`fl` words) in exact top-to-bottom reading order.
 3. Contact details (name, email, phone, URLs) appear in body text and links are clickable PDF annotations.
