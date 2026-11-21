@@ -27,6 +27,9 @@ Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewr
 - [x] **LinkedIn-to-PDF Export (`cvfmt linkedin`)**:
   - [x] Supports both LinkedIn's official GDPR Data Export (`.zip` / CSV folder) and 2-column "Save to PDF" (`Profile.pdf`) using column-aware `pdfplumber` cropping.
   - [x] Auto-groups consecutive roles at the same company into `####` sub-roles, maps LinkedIn language labels to EU CEFR levels, and supports one-shot `--pdf --accent --verify`.
+- [x] **Public URL Import (`cvfmt from-url`)**:
+  - [x] Supports public HTML CV pages, JSON Resume (`.json`) URLs, and raw `cv-md/1.0` URLs with optional `--pdf --accent --verify`.
+  - [x] Detects gated `linkedin.com/in/` URLs and prints the 2-step `Save to PDF -> cvfmt linkedin` instructions.
 
 ---
 
@@ -38,6 +41,8 @@ Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewr
 
 ## Backlog
 
+- [ ] **Direct LinkedIn profile URL import (without manual export)**
+  - *Comment*: LinkedIn blocks direct unauthenticated HTTP fetches (HTTP 999 / authwall). Explore ToS-compliant approaches later (e.g., official OAuth / user-authenticated browser extension or BYO compliant enrichment API key).
 - [ ] **Polish PDF design**
   - *Comment*: Further refine the Warm Editorial layout's visual craft—micro-typography, long role/company title wrapping (avoiding awkward `. Company` line breaks), page-2 balance/density, and optional modern theme presets (`--theme editorial|neon|swiss`) while preserving 100% single-column ATS/LLM readability.
 - [ ] **Optional `Inter` typeface theme flag** (`--font ibm-plex|inter`) once IBM Plex Sans v1 is solid.

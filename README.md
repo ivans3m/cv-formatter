@@ -28,6 +28,9 @@ python3 -m venv .venv
 # Import LinkedIn Data Export (.zip / CSV folder) or 'Save to PDF' (Profile.pdf) directly to cv-md/1.0 + PDF
 .venv/bin/cvfmt linkedin Profile.pdf --pdf -o cv.pdf --verify
 .venv/bin/cvfmt linkedin linkedin-export.zip --pdf --accent "#0F766E" --verify
+
+# Import a public CV webpage, JSON Resume URL, or raw cv-md/1.0 URL directly to cv-md/1.0 + PDF
+.venv/bin/cvfmt from-url https://ivan.diuldia.com/cv/ --pdf -o cv.pdf --verify
 ```
 
 Run tests:

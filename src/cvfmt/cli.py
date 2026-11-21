@@ -12,6 +12,7 @@ from cvfmt.linkedin import import_linkedin
 from cvfmt.parser import parse_cv_file, parse_cv_text
 from cvfmt.renderer import compile_pdf
 from cvfmt.typst_gen import normalize_hex_color
+from cvfmt.url_import import LinkedInAuthwallError, import_from_url
 from cvfmt.validator import validate_cv
 from cvfmt.verifier import verify_pdf
 
@@ -228,6 +229,93 @@ def linkedin(
     md_out.parent.mkdir(parents=True, exist_ok=True)
     md_out.write_text(md_text, encoding="utf-8")
     typer.secho(f"Imported LinkedIn -> {md_out}", fg=typer.colors.GREEN)
+
+    doc = parse_cv_text(md_text, source_path=str(md_out))
+    val = validate_cv(doc, allow_todos=True)
+    _print_validation(val)
+
+    if pdf and pdf_out is not None:
+        if not val.ok:
+            typer.secho("ERROR: Imported CV has schema errors; fix them before rendering PDF.", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+        compile_pdf(doc, pdf_out, paper_override=paper.lower(), accent_override=normalized_accent)
+        typer.secho(f"Rendered PDF -> {pdf_out}", fg=typer.colors.GREEN)
+        if verify:
+            report = verify_pdf(doc, pdf_out)
+            for err in report.errors:
+                typer.secho(f"VERIFY ERROR: {err}", fg=typer.colors.RED, err=True)
+            for warn in report.warnings:
+                typer.secho(f"VERIFY WARN : {warn}", fg=typer.colors.YELLOW, err=True)
+            if not report.ok:
+                raise typer.Exit(code=2)
+            typer.secho(
+                f"Verified: {report.page_count} page(s), {report.link_count} clickable link(s), text layer clean.",
+                fg=typer.colors.GREEN,
+            )
+
+
+@app.command("from-url")
+def from_url(
+    url: str = typer.Argument(
+        ...,
+        help="Public CV URL (HTML CV page, JSON Resume .json, or raw cv-md/1.0 Markdown).",
+    ),
+    output: Optional[Path] = typer.Option(
+        None,
+        "-o",
+        "--output",
+        help="Output .md path (or .pdf path when --pdf is set). Defaults to cv-imported.md / .pdf.",
+    ),
+    pdf: bool = typer.Option(
+        False,
+        "--pdf",
+        help="Also render directly to a Warm Editorial PDF using cvfmt.",
+    ),
+    paper: str = typer.Option("a4", "--paper", help="Paper size: a4 (default) or letter."),
+    accent: Optional[str] = typer.Option(
+        None,
+        "--accent",
+        help="Optional 6-digit hex accent color for --pdf (default: #71717A light grey).",
+    ),
+    verify: bool = typer.Option(
+        False,
+        "--verify",
+        help="Run PDF text-layer verification when --pdf is set.",
+    ),
+) -> None:
+    """Import a public CV webpage, JSON Resume URL, or raw cv-md/1.0 URL into cv-md/1.0 (and optionally PDF)."""
+    if paper.lower() not in ("a4", "letter"):
+        typer.secho(f"ERROR: --paper must be 'a4' or 'letter' (got {paper!r}).", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    normalized_accent: str | None = None
+    if accent is not None:
+        try:
+            normalized_accent = normalize_hex_color(accent)
+        except ValueError as exc:
+            typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+
+    try:
+        md_text = import_from_url(url, paper=paper.lower())
+    except LinkedInAuthwallError as exc:
+        typer.secho(f"NOTICE: {exc}", fg=typer.colors.YELLOW, err=True)
+        raise typer.Exit(code=1)
+    except Exception as exc:
+        typer.secho(f"ERROR: Failed to import URL: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    base = output or Path("cv-imported.pdf" if pdf else "cv-imported.md")
+    if pdf:
+        pdf_out = base if base.suffix.lower() == ".pdf" else base.with_suffix(".pdf")
+        md_out = pdf_out.with_suffix(".md")
+    else:
+        md_out = base
+        pdf_out = None
+
+    md_out.parent.mkdir(parents=True, exist_ok=True)
+    md_out.write_text(md_text, encoding="utf-8")
+    typer.secho(f"Imported URL -> {md_out}", fg=typer.colors.GREEN)
 
     doc = parse_cv_text(md_text, source_path=str(md_out))
     val = validate_cv(doc, allow_todos=True)

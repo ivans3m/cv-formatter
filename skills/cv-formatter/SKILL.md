@@ -38,7 +38,7 @@ Supported file roles (same `cv-md/1.0` schema for all):
 
 ### Step 2: Fact Inventory (Mandatory)
 
-Before rewriting anything, read the entire source input (PDF, DOCX, LinkedIn export, plain text, or Markdown) and inventory all verifiable facts:
+Before rewriting anything, read the entire source input (PDF, DOCX, LinkedIn export, public CV webpage URL, JSON Resume URL, plain text, or Markdown) and inventory all verifiable facts:
 - Name, location, contact details, links, work authorization.
 - Every employer, role title, start/end date, location, and internal promotion or freelance engagement.
 - Concrete metrics, scale numbers, tools/technologies, education, languages, certifications, and publications.

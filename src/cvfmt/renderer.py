@@ -29,13 +29,23 @@ def compile_pdf(
     out.parent.mkdir(parents=True, exist_ok=True)
 
     standards = ["ua-1"] if pdf_ua else []
-    pdf_bytes = typst.compile(
-        typst_source.encode("utf-8"),
-        font_paths=[str(FONTS_DIR)],
-        ignore_system_fonts=True,
-        pdf_tags=True,
-        pdf_standards=standards,
-    )
+    try:
+        pdf_bytes = typst.compile(
+            typst_source.encode("utf-8"),
+            font_paths=[str(FONTS_DIR)],
+            ignore_system_fonts=True,
+            pdf_tags=True,
+            pdf_standards=standards,
+        )
+    except Exception:
+        # Fallback: allow system font fallback if document contains non-Latin scripts (e.g. CJK)
+        pdf_bytes = typst.compile(
+            typst_source.encode("utf-8"),
+            font_paths=[str(FONTS_DIR)],
+            ignore_system_fonts=False,
+            pdf_tags=True,
+            pdf_standards=standards,
+        )
     out.write_bytes(pdf_bytes)
     return out
 
