@@ -2,16 +2,20 @@
 
 Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewriting skill, and Python + Typst local CLI).
 
+**Repo:** [github.com/ivans3m/cv-formatter](https://github.com/ivans3m/cv-formatter) · **Branch:** `main` · **License:** MIT
+
 ---
 
 ## Completed
 
-- [x] **Project setup & git repo** — Created `docs/`, `research/`, `.gitignore`, `README.md`, and initial commit (`ee40291`).
+- [x] **Project setup & git repo** — Created `docs/`, `research/`, `.gitignore`, `README.md`, and initial history (`ee40291` …).
+- [x] **GitHub publication (v0.1.0 source)** — `origin` → [ivans3m/cv-formatter](https://github.com/ivans3m/cv-formatter); root `LICENSE` (MIT); `pyproject.toml` `license-files`; merged remote initial commit; `main` tracking `origin/main`.
+- [x] **Repository hygiene & local-only paths** — `.gitignore` covers `.agents/`, `tests/`, and `docs/blog/`; golden fixtures and pytest remain for local development but are not published on GitHub.
 - [x] **Phase 1–3 Research** (`research/01`–`07`) — Completed research on EU ATS parsing, LLM screening & EU AI Act, human recruiter UX, Markdown schema design, `agentskills.io` skill architecture, Typst vs. WeasyPrint/Playwright/LaTeX, and evaluation benchmarks.
 - [x] **Formal v1 Specifications** (`docs/spec-*.md`) — Locked in `cv-md/1.0`, `agentskills.io` skill contract, and `cvfmt` Python + Typst + IBM Plex Sans CLI spec.
 - [x] **Open-Standard CV-Rewriting Skill (`skills/cv-formatter/`)**:
   - [x] `SKILL.md` (frontmatter, Silent & Extended Mode router, zero-hallucination & anti-AI-slop guardrails).
-  - [x] Progressive-disclosure references (`schema-v1.md`, `eu-and-ats-rules.md`, `writing-and-humanization.md`, `interview-playbook.md`).
+  - [x] Progressive-disclosure references (`references/schema-v1.md`, `references/eu-and-ats-rules.md`, `references/writing-and-humanization.md`, `references/interview-playbook.md`).
   - [x] Golden example `assets/example-eu-cv.md`.
 - [x] **Local Markdown-to-PDF CLI (`cvfmt`)**:
   - [x] Python package (`pyproject.toml`, `.venv`, `typst 0.15.2` wheel, `pydantic`, `typer`, `pypdf`, `pdfplumber`, `pytest`).
@@ -21,7 +25,7 @@ Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewr
   - [x] `cvfmt render` (`-o`, `--paper`, `--allow-todos`, `--strict`, `--verify`) and `cvfmt init`.
 - [x] **Verification & Golden Benchmarks**:
   - [x] 4 anonymized EU golden fixtures (`junior-eu-1page.md`, `senior-eu-2page.md`, `consultant-multirole.md`, `diacritics-stress.md`).
-  - [x] Automated `pytest` suite (10/10 passing in <1s) verifying schema rules, `pypdf` + `pdfplumber` round-trip reading order, EU diacritics (`ü`, `ö`, `ä`, `ß`, `é`, `ł`, `ø`, `€`), `fi`/`fl` ligature integrity, contact visibility, and clickable URI annotations.
+  - [x] Automated local `pytest` suite (**22/22** passing in ~1s) verifying schema rules, `pypdf` + `pdfplumber` round-trip reading order, EU diacritics (`ü`, `ö`, `ä`, `ß`, `é`, `ł`, `ø`, `€`), `fi`/`fl` ligature integrity, contact visibility, clickable URI annotations, LinkedIn/URL importers, and CLI error paths.
   - [x] Visual PNG review of rendered golden PDFs + Warm Editorial redesign (default `#71717A` light-grey accent, `--accent` hex CLI flag, fixed list interline spacing).
   - [x] **LLM Structured Extraction Benchmark** (`benchmarks/llm_extraction.py`) — Blind LLM extraction on raw `pdfplumber` text of all 4 rendered EU golden PDFs achieved **100% accuracy** on identity, roles/companies (including nested promotions), dates, CEFR languages, education, and quantified metrics.
 - [x] **LinkedIn-to-PDF Export (`cvfmt linkedin`)**:
@@ -33,12 +37,15 @@ Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewr
 
 - [x] **End-to-end Extended Mode Skill Test** — Tested `skills/cv-formatter` 2-round guided interview on Ivan's real CV (`ivan.diuldia.com/cv/`) tailored for a Netherlands Fractional CMO role, producing a validated, verified 2-page Warm Editorial PDF.
 - [x] **Code Review & Hardening Pass** — Fixed LinkedIn `Profile.pdf` overwrite guard, capped `fetch_url` at 5 MB, added clean YAML/Pydantic CLI error handling, narrowed Typst font fallback, fixed `YYYY-MM` HTML date splitting, fixed `UNRESOLVED_TODO` line numbers and `[TODO]` email allowance, deduplicated `cli.py`, prevented orphan splits on compact `Skills`/`Languages` sections, and eliminated pytest warnings.
+- [x] **Documentation sync (post-GitHub)** — Root and `docs/` README indexes updated for public repo layout, MIT license, local-only `tests/` / `.agents/`, CLI quickstart, and 22-test local verification story.
 
 ---
 
 ## Up Next
 
-- *(All v1 Up Next items complete! Ready to pull from Backlog below.)*
+- [ ] **Sync `spec-pdf-renderer.md` with v0.1.0 CLI** — Document `linkedin`, `from-url`, and current flags; remove local `file://` research links for GitHub readers.
+- [ ] **Refresh public contributor docs** — Optional: `CONTRIBUTING.md`, issue templates, and a minimal GitHub Action that lints/packages without the private `tests/` tree (or restore `tests/` to the repo when ready for CI).
+- *(All v1 feature Up Next items complete; see Backlog for product work.)*
 
 ---
 

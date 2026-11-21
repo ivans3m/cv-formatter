@@ -68,7 +68,7 @@ def fetch_url(url: str, *, timeout: float = 15.0) -> tuple[str, str]:
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "cvfmt/0.1 (+https://github.com/cvfmt)",
+            "User-Agent": "cvfmt/0.1 (+https://github.com/ivans3m/cv-formatter)",
             "Accept": "text/markdown, text/plain, application/json, text/html;q=0.9, */*;q=0.5",
         },
     )
