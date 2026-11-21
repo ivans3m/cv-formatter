@@ -32,7 +32,7 @@ Proposed command name: `cvfmt` (invocable via `uv run cvfmt` or installed via `u
 cvfmt validate cv.md
 
 # Render cv.md to cv.pdf (validates first by default)
-cvfmt render cv.md [-o output.pdf] [--paper a4|letter] [--allow-todos] [--verify]
+cvfmt render cv.md [-o output.pdf] [--paper a4|letter] [--accent #RRGGBB] [--allow-todos] [--verify]
 
 # Scaffold a starter EU cv-md/1.0 file
 cvfmt init [path]
@@ -40,6 +40,7 @@ cvfmt init [path]
 
 ### Flags & Exit Codes
 - `--paper a4|letter`: Overrides the `paper` frontmatter value.
+- `--accent #RRGGBB`: Overrides the Warm Editorial accent color (default `#71717A` light grey; accepts 6-digit hex with or without `#`, also configurable via `accent` in frontmatter).
 - `--verify`: After generating the PDF, automatically runs the text-layer round-trip check (`pypdf`/`pdfplumber` or `pdftotext`) and reports any extraction anomalies, page count, and link count.
 - `--allow-todos`: Allows rendering even if `[TODO: ...]` markers exist (useful for draft previews).
 - `--strict`: Treats lint warnings (non-canonical headings, >2 pages, ungrounded skills) as non-zero exit errors.

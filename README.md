@@ -18,10 +18,11 @@ python3 -m venv .venv
 # Validate schema, ATS headings, EU CEFR languages, and LLM evidence rules
 .venv/bin/cvfmt validate cv.md
 
-# Render to minimalist A4 PDF (Tagged PDF / PDF/UA-1, IBM Plex Sans) and verify text layer
+# Render to minimalist A4 PDF (Warm Editorial, IBM Plex Sans, Tagged PDF/UA-1) and verify text layer
 .venv/bin/cvfmt render cv.md --verify
 
-# Optional US Letter override
+# Optional custom accent color (6-digit hex, default: #71717A light grey) or US Letter override
+.venv/bin/cvfmt render cv.md --accent "#0F766E" -o cv-teal.pdf --verify
 .venv/bin/cvfmt render cv.md --paper letter -o cv-us.pdf --verify
 ```
 

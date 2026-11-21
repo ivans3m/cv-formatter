@@ -38,6 +38,7 @@ class Frontmatter(BaseModel):
     links: list[LinkItem] = Field(default_factory=list)
     paper: str = "a4"
     lang: str = "en"
+    accent: str | None = None
 
     model_config = {"populate_by_name": True}
 

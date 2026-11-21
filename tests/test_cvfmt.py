@@ -159,3 +159,35 @@ def test_cli_init_validate_and_render(tmp_path: Path) -> None:
     res_render = runner.invoke(app, ["render", str(cv_path), "-o", str(pdf_path), "--verify"])
     assert res_render.exit_code == 0, res_render.output
     assert pdf_path.exists()
+
+    pdf_accent = tmp_path / "starter-teal.pdf"
+    res_accent = runner.invoke(
+        app, ["render", str(cv_path), "-o", str(pdf_accent), "--accent", "0F766E", "--verify"]
+    )
+    assert res_accent.exit_code == 0, res_accent.output
+    assert pdf_accent.exists()
+
+    res_bad_accent = runner.invoke(
+        app, ["render", str(cv_path), "--accent", "not-a-hex"]
+    )
+    assert res_bad_accent.exit_code == 1
+
+
+def test_entry_heading_prefers_em_dash_over_en_dash() -> None:
+    md = """---
+schema: cv-md/1.0
+name: Test User
+email: test@example.com
+---
+
+## Experience
+
+### Earlier Roles (2003 – 2009) — Acme & Beta
+*2003 – 2009 | Kyiv, Ukraine*
+
+- Led digital projects.
+"""
+    doc = parse_cv_text(md)
+    entry = doc.sections[0].entries[0]
+    assert entry.primary == "Earlier Roles (2003 – 2009)"
+    assert entry.secondary == "Acme & Beta"

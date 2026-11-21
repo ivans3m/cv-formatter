@@ -14,6 +14,7 @@ from cvfmt.models import (
 
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_HEX_COLOR_RE = re.compile(r"^#?[0-9a-fA-F]{6}$")
 _DATE_TOKEN_RE = re.compile(r"^(\d{4}(-\d{2})?|Present)$")
 _TODO_RE = re.compile(r"\[TODO(?::[^\]]*)?\]", re.IGNORECASE)
 _SKILL_BULLET_RE = re.compile(r"^\*\*([^:*]+):?\*\*:?\s*(.+)$")
@@ -118,6 +119,16 @@ def validate_cv(doc: CVDocument, *, allow_todos: bool = False) -> ValidationResu
                 severity="error",
                 code="INVALID_PAPER",
                 message=f"Frontmatter 'paper' must be 'a4' or 'letter' (got {fm.paper!r}).",
+                line=1,
+            )
+        )
+
+    if fm.accent is not None and not _HEX_COLOR_RE.match(fm.accent.strip()):
+        result.issues.append(
+            ValidationIssue(
+                severity="error",
+                code="INVALID_ACCENT",
+                message=f"Frontmatter 'accent' must be a 6-digit hex color like '#71717A' (got {fm.accent!r}).",
                 line=1,
             )
         )

@@ -18,10 +18,13 @@ def compile_pdf(
     output_path: str | Path,
     *,
     paper_override: str | None = None,
+    accent_override: str | None = None,
     pdf_ua: bool = True,
 ) -> Path:
     """Compile a CVDocument into a minimalist, tagged PDF using bundled IBM Plex Sans."""
-    typst_source = generate_typst(doc, paper_override=paper_override)
+    typst_source = generate_typst(
+        doc, paper_override=paper_override, accent_override=accent_override
+    )
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
 
@@ -43,10 +46,13 @@ def compile_pngs(
     *,
     stem: str = "page",
     paper_override: str | None = None,
+    accent_override: str | None = None,
     ppi: float = 144.0,
 ) -> list[Path]:
     """Render a CVDocument to PNG pages for visual review."""
-    typst_source = generate_typst(doc, paper_override=paper_override)
+    typst_source = generate_typst(
+        doc, paper_override=paper_override, accent_override=accent_override
+    )
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 

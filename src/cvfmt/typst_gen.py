@@ -1,4 +1,4 @@
-"""Deterministic Typst generator for cv-md/1.0 documents."""
+"""Deterministic Warm Editorial Typst generator for cv-md/1.0 documents."""
 
 from __future__ import annotations
 
@@ -8,11 +8,24 @@ from datetime import datetime
 from cvfmt.models import CVDocument, Entry, Section, SubRole
 
 
+DEFAULT_ACCENT = "#71717A"  # Refined light-medium neutral grey (Zinc 500)
+
 _TYPST_ESCAPE_RE = re.compile(r'([\\#$@<>_*`\[\]])')
 _INLINE_TOKEN_RE = re.compile(
     r'(\[([^\]]+)\]\((https?://[^)\s]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`)'
 )
 _YM_RE = re.compile(r"\b(\d{4})-(\d{2})\b")
+_HEX_RE = re.compile(r"^#?([0-9a-fA-F]{6})$")
+
+
+def normalize_hex_color(value: str | None) -> str:
+    """Validate and normalize a 6-digit hex color to '#RRGGBB'."""
+    if not value:
+        return DEFAULT_ACCENT
+    m = _HEX_RE.match(value.strip())
+    if not m:
+        raise ValueError(f"Invalid hex color {value!r}. Expected 6-digit hex like '#0F766E' or '71717A'.")
+    return f"#{m.group(1).upper()}"
 
 
 def escape_typst(text: str) -> str:
@@ -69,8 +82,11 @@ def md_inline_to_typst(text: str) -> str:
 def _render_bullets(bullets: list[str], *, compact: bool = False) -> list[str]:
     if not bullets:
         return []
-    spacing = "3.5pt" if compact else "4pt"
-    lines = [f"#list(tight: true, spacing: {spacing}, marker: [#text(fill: rgb(\"#6B7280\"))[•]],"]
+    # Inter-bullet spacing must always be larger than intra-bullet par(leading: 0.56em ≈ 5.2pt)
+    spacing = "6.5pt" if compact else "7.5pt"
+    lines = [
+        f'#list(tight: false, spacing: {spacing}, body-indent: 0.65em, marker: [#text(fill: rgb("#A1A1AA"))[–]],'
+    ]
     for b in bullets:
         lines.append(f"  [{md_inline_to_typst(b)}],")
     lines.append(")")
@@ -79,28 +95,23 @@ def _render_bullets(bullets: list[str], *, compact: bool = False) -> list[str]:
 
 def _render_subrole(sr: SubRole) -> list[str]:
     lines: list[str] = []
-    left = f'#text(size: 9.5pt, weight: "medium", fill: rgb("#111827"))[{md_inline_to_typst(sr.title)}]'
+    left = f'#text(size: 9.4pt, weight: "medium", fill: rgb("#18181B"))[{md_inline_to_typst(sr.title)}]'
     right = (
-        f'#text(size: 8.8pt, fill: rgb("#6B7280"))[{escape_typst(format_date_range(sr.date_range))}]'
+        f'#text(size: 8.5pt, fill: rgb("#71717A"))[{escape_typst(format_date_range(sr.date_range))}]'
         if sr.date_range
         else ""
     )
 
-    lines.append("#block(breakable: false, above: 7pt, below: 3pt)[")
+    lines.append("#block(sticky: true, breakable: false, above: 8pt, below: 5pt)[")
     if right:
         lines.append("  #grid(columns: (1fr, auto), gutter: 8pt, align: (left + bottom, right + bottom),")
         lines.append(f"    [{left}], [{right}]")
         lines.append("  )")
     else:
         lines.append(f"  {left}")
-    if sr.bullets:
-        # Keep heading attached to at least first bullet
-        lines.append("  #v(3pt)")
-        lines.extend("  " + ln for ln in _render_bullets([sr.bullets[0]]))
     lines.append("]")
-    if len(sr.bullets) > 1:
-        lines.append("#v(1pt)")
-        lines.extend(_render_bullets(sr.bullets[1:]))
+    if sr.bullets:
+        lines.extend(_render_bullets(sr.bullets))
     return lines
 
 
@@ -109,24 +120,23 @@ def _render_entry(entry: Entry) -> list[str]:
 
     if entry.secondary:
         title_typst = (
-            f'#text(size: 9.8pt, weight: "semibold", fill: rgb("#111827"))[{md_inline_to_typst(entry.primary)}]'
-            f'#text(size: 9.8pt, fill: rgb("#6B7280"))[ — ]'
-            f'#text(size: 9.8pt, weight: "medium", fill: rgb("#374151"))[{md_inline_to_typst(entry.secondary)}]'
+            f'#text(size: 9.8pt, weight: "semibold", fill: rgb("#18181B"))[{md_inline_to_typst(entry.primary)}]'
+            f'#text(size: 9.5pt, fill: rgb("#71717A"))[  ·  {md_inline_to_typst(entry.secondary)}]'
         )
     else:
-        title_typst = f'#text(size: 9.8pt, weight: "semibold", fill: rgb("#111827"))[{md_inline_to_typst(entry.primary)}]'
+        title_typst = f'#text(size: 9.8pt, weight: "semibold", fill: rgb("#18181B"))[{md_inline_to_typst(entry.primary)}]'
 
     date_part = format_date_range(entry.date_range) if entry.date_range else ""
     loc_part = entry.location or ""
     meta_pieces = [p for p in (date_part, loc_part) if p]
     meta_typst = (
-        f'#text(size: 8.8pt, fill: rgb("#6B7280"))[{md_inline_to_typst("  |  ".join(meta_pieces))}]'
+        f'#text(size: 8.5pt, fill: rgb("#71717A"))[{md_inline_to_typst("  |  ".join(meta_pieces))}]'
         if meta_pieces
         else ""
     )
 
-    # Keep entry header + metadata + first bullet together to prevent orphaned job headers
-    lines.append("#block(breakable: false, above: 9pt, below: 3pt)[")
+    # sticky: true keeps header attached to the list below without splitting bullet 1 from bullets 2..N
+    lines.append("#block(sticky: true, breakable: false, above: 11pt, below: 5pt)[")
     if meta_typst:
         lines.append("  #grid(columns: (1fr, auto), gutter: 10pt, align: (left + bottom, right + bottom),")
         lines.append(f"    [{title_typst}], [{meta_typst}]")
@@ -135,17 +145,12 @@ def _render_entry(entry: Entry) -> list[str]:
         lines.append(f"  {title_typst}")
 
     for p in entry.paragraphs:
-        lines.append("  #v(3pt)")
+        lines.append("  #v(4pt)")
         lines.append(f"  {md_inline_to_typst(p)}")
-
-    if entry.bullets:
-        lines.append("  #v(3.5pt)")
-        lines.extend("  " + ln for ln in _render_bullets([entry.bullets[0]]))
     lines.append("]")
 
-    if len(entry.bullets) > 1:
-        lines.append("#v(1pt)")
-        lines.extend(_render_bullets(entry.bullets[1:]))
+    if entry.bullets:
+        lines.extend(_render_bullets(entry.bullets))
 
     for sr in entry.sub_roles:
         lines.extend(_render_subrole(sr))
@@ -153,13 +158,21 @@ def _render_entry(entry: Entry) -> list[str]:
     return lines
 
 
-def _render_section(section: Section) -> list[str]:
+def _render_section(section: Section, *, accent: str) -> list[str]:
     lines: list[str] = []
     if section.title:
         lines.append(f"== {escape_typst(section.title)}")
 
+    is_summary = section.title.lower() == "summary"
     for p in section.paragraphs:
-        lines.append(f"#block(above: 3pt, below: 3pt)[{md_inline_to_typst(p)}]")
+        if is_summary:
+            lines.append(
+                f'#block(width: 100%, fill: rgb("#FAFAF9"), stroke: (left: 2pt + rgb("{accent}")), '
+                f'inset: (left: 10pt, right: 8pt, y: 7pt), above: 2pt, below: 4pt)'
+                f'[#text(fill: rgb("#27272A"))[{md_inline_to_typst(p)}]]'
+            )
+        else:
+            lines.append(f"#block(above: 2pt, below: 4pt)[{md_inline_to_typst(p)}]")
 
     compact_bullets = section.title.lower() in ("skills", "languages", "certifications", "publications")
     if section.bullets:
@@ -172,19 +185,25 @@ def _render_section(section: Section) -> list[str]:
     return lines
 
 
-def generate_typst(doc: CVDocument, *, paper_override: str | None = None) -> str:
-    """Generate a self-contained minimalist Typst document from a CVDocument."""
+def generate_typst(
+    doc: CVDocument,
+    *,
+    paper_override: str | None = None,
+    accent_override: str | None = None,
+) -> str:
+    """Generate a self-contained Warm Editorial Typst document from a CVDocument."""
     fm = doc.frontmatter
     paper_choice = (paper_override or fm.paper or "a4").lower()
     if paper_choice == "letter":
-        paper_spec = 'paper: "us-letter", margin: (top: 0.62in, bottom: 0.62in, left: 0.65in, right: 0.65in)'
+        paper_spec = 'paper: "us-letter", margin: (top: 0.66in, bottom: 0.62in, left: 0.70in, right: 0.70in)'
     else:
-        paper_spec = 'paper: "a4", margin: (top: 16mm, bottom: 16mm, left: 17mm, right: 17mm)'
+        paper_spec = 'paper: "a4", margin: (top: 17mm, bottom: 16mm, left: 18mm, right: 18mm)'
 
+    accent = normalize_hex_color(accent_override or fm.accent)
     doc_title = f"{fm.name} — CV" if fm.name else "CV"
     lang = escape_typst_string(fm.lang or "en")
 
-    # Build contact line (strictly inside main body flow, never in page header margins)
+    # Contact line stays strictly inside main body flow (never in page header margins)
     contact_items: list[str] = []
     if fm.location:
         contact_items.append(escape_typst(fm.location))
@@ -200,27 +219,27 @@ def generate_typst(doc: CVDocument, *, paper_override: str | None = None) -> str
             f'#link("{escape_typst_string(item.url)}")[{escape_typst(item.label)}]'
         )
 
-    contact_sep = ' #text(fill: rgb("#9CA3AF"))[ · ] '
+    contact_sep = ' #text(fill: rgb("#D4D4D8"))[ · ] '
     contact_line = contact_sep.join(contact_items)
 
     lines: list[str] = [
         f'#set document(title: "{escape_typst_string(doc_title)}", author: "{escape_typst_string(fm.name)}")',
         f"#set page({paper_spec}, footer: context {{",
         "  if counter(page).final().first() > 1 {",
-        '    align(right, text(size: 8pt, fill: rgb("#9CA3AF"))[Page #counter(page).display("1 of 1", both: true)])',
+        '    align(right, text(size: 8pt, fill: rgb("#A1A1AA"))[Page #counter(page).display("1 of 1", both: true)])',
         "  }",
         "})",
-        f'#set text(font: "IBM Plex Sans", size: 9.5pt, fill: rgb("#1F2937"), lang: "{lang}", ligatures: false)',
-        "#set par(leading: 0.62em, justify: false)",
-        '#show link: set text(fill: rgb("#1E3A5F"))',
+        f'#set text(font: "IBM Plex Sans", size: 9.3pt, fill: rgb("#27272A"), lang: "{lang}", ligatures: false)',
+        "#set par(leading: 0.56em, spacing: 0.65em, justify: false)",
+        f'#show link: set text(fill: rgb("{accent}"))',
         "#set heading(outlined: false)",
-        "#show heading.where(level: 1): it => block(above: 0pt, below: 5pt)[",
-        '  #text(size: 19.5pt, weight: "bold", fill: rgb("#111827"))[#it.body]',
+        "#show heading.where(level: 1): it => block(above: 0pt, below: 3pt)[",
+        '  #text(size: 24pt, weight: "semibold", fill: rgb("#18181B"), tracking: -0.02em)[#it.body]',
         "]",
-        "#show heading.where(level: 2): it => block(sticky: true, above: 13pt, below: 5pt)[",
-        "  #stack(dir: ttb, spacing: 3.5pt,",
-        '    text(size: 10.5pt, weight: "semibold", fill: rgb("#111827"))[#it.body],',
-        '    line(length: 100%, stroke: 0.5pt + rgb("#E5E7EB")),',
+        "#show heading.where(level: 2): it => block(sticky: true, above: 15pt, below: 6pt)[",
+        "  #grid(columns: (auto, 1fr), gutter: 10pt, align: horizon,",
+        f'    text(size: 10pt, weight: "semibold", fill: rgb("{accent}"))[#it.body],',
+        '    line(length: 100%, stroke: 0.5pt + rgb("#E4E4E7")),',
         "  )",
         "]",
         "",
@@ -229,19 +248,17 @@ def generate_typst(doc: CVDocument, *, paper_override: str | None = None) -> str
 
     if fm.headline:
         lines.append(
-            f'#block(above: 0pt, below: 5pt)[#text(size: 10.5pt, weight: "medium", fill: rgb("#374151"))[{escape_typst(fm.headline)}]]'
+            f'#block(above: 0pt, below: 5pt)[#text(size: 10.5pt, weight: "regular", fill: rgb("#71717A"))[{escape_typst(fm.headline)}]]'
         )
 
     if contact_line:
         lines.append(
-            f'#block(above: 0pt, below: 7pt)[#text(size: 8.8pt, fill: rgb("#4B5563"))[{contact_line}]]'
+            f'#block(above: 0pt, below: 4pt)[#text(size: 8.6pt, fill: rgb("#71717A"))[{contact_line}]]'
         )
-        lines.append('#line(length: 100%, stroke: 0.6pt + rgb("#D1D5DB"))')
-        lines.append("#v(2pt)")
 
     for section in doc.sections:
         lines.append("")
-        lines.extend(_render_section(section))
+        lines.extend(_render_section(section, accent=accent))
 
     lines.append("")
     return "\n".join(lines)

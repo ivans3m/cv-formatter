@@ -10,6 +10,7 @@ import typer
 from cvfmt import __version__
 from cvfmt.parser import parse_cv_file
 from cvfmt.renderer import compile_pdf
+from cvfmt.typst_gen import normalize_hex_color
 from cvfmt.validator import validate_cv
 from cvfmt.verifier import verify_pdf
 
@@ -99,6 +100,11 @@ def render(
     path: Path = typer.Argument(..., exists=True, readable=True, help="Path to cv-md/1.0 Markdown file."),
     output: Optional[Path] = typer.Option(None, "-o", "--output", help="Output PDF path (defaults to <stem>.pdf)."),
     paper: Optional[str] = typer.Option(None, "--paper", help="Override paper size: a4 or letter."),
+    accent: Optional[str] = typer.Option(
+        None,
+        "--accent",
+        help="Override accent color as 6-digit hex (default: #71717A light grey; e.g. '#0F766E' or '1A73E8').",
+    ),
     allow_todos: bool = typer.Option(False, "--allow-todos", help="Allow rendering with [TODO] placeholders."),
     strict: bool = typer.Option(False, "--strict", help="Treat warnings as errors."),
     verify: bool = typer.Option(False, "--verify", help="Run PDF text-layer round-trip check after rendering."),
@@ -107,6 +113,14 @@ def render(
     if paper is not None and paper.lower() not in ("a4", "letter"):
         typer.secho(f"ERROR: --paper must be 'a4' or 'letter' (got {paper!r}).", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
+
+    normalized_accent: str | None = None
+    if accent is not None:
+        try:
+            normalized_accent = normalize_hex_color(accent)
+        except ValueError as exc:
+            typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
 
     doc = parse_cv_file(path)
     result = validate_cv(doc, allow_todos=allow_todos)
@@ -117,7 +131,7 @@ def render(
 
     out_path = output or path.with_suffix(".pdf")
     try:
-        compile_pdf(doc, out_path, paper_override=paper)
+        compile_pdf(doc, out_path, paper_override=paper, accent_override=normalized_accent)
     except Exception as exc:
         typer.secho(f"ERROR: Typst compilation failed: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2)

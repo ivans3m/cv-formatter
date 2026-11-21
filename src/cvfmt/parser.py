@@ -40,9 +40,10 @@ def split_frontmatter(text: str) -> tuple[dict, str, int]:
 
 
 def _parse_entry_heading(heading: str) -> tuple[str, str | None]:
-    parts = _TITLE_SPLIT_RE.split(heading, maxsplit=1)
-    if len(parts) == 2:
-        return parts[0].strip(), parts[1].strip()
+    for sep in (" — ", " -- ", " – "):
+        if sep in heading:
+            left, right = heading.split(sep, 1)
+            return left.strip(), right.strip()
     return heading.strip(), None
 
 
