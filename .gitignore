@@ -1,0 +1,11 @@
+# OS & Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Personal blog post and its agent rule (kept local, never committed)
+docs/blog/
+.agents/rules/blog-updates.md
