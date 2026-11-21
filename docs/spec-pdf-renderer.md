@@ -179,7 +179,7 @@ cv.pdf
 
 ## 5. Verification & Quality Gates (v1 Acceptance Criteria)
 
-v1 acceptance uses the three-layer framework in [07-evaluation-framework.md](../research/07-evaluation-framework.md). The **22-test** local `pytest` suite and **4 golden EU fixtures** live under `tests/` (gitignored on the public GitHub repo; maintainer checkouts only). Criteria:
+v1 acceptance uses the three-layer framework in [07-evaluation-framework.md](../research/07-evaluation-framework.md). The **22-test** `pytest` suite and **4 golden EU fixtures** live under `tests/` in the repository. Criteria:
 1. Zero schema/lint errors on valid fixtures; expected errors caught on invalid fixtures.
 2. `pdftotext` and `pdfplumber` extract 100% of characters (including EU diacritics and `fi`/`fl` words) in exact top-to-bottom reading order.
 3. Contact details (name, email, phone, URLs) appear in body text and links are clickable PDF annotations.

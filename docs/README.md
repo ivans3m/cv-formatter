@@ -13,11 +13,9 @@ Formal specifications and design documents consolidated from our [research phase
 | Path | In public repo | Notes |
 | --- | --- | --- |
 | `src/`, `skills/`, `docs/`, `research/`, `benchmarks/` | Yes | Core format, CLI, skill, specs, research |
-| `tests/` | No | Golden fixtures + pytest; kept local via `.gitignore` |
+| `tests/` | Yes | Golden fixtures + pytest (`pip install -e ".[dev]"` then `pytest -v`) |
 | `.agents/` | No | Agent-specific rules and workflows |
 | `docs/blog/` | No | Personal blog drafts |
-
-Only checkouts that include the gitignored `tests/` directory can run `.venv/bin/pytest -v` locally. A plain `git clone` does not include tests; there is no GitHub Actions CI for the suite today.
 
 ## Specifications
 

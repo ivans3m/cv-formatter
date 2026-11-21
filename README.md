@@ -37,17 +37,15 @@ python3 -m venv .venv
 .venv/bin/cvfmt from-url https://ivan.diuldia.com/cv/ --pdf -o cv.pdf --verify
 ```
 
-### Local development & tests
-
-The public Git repository intentionally omits `tests/` and `.agents/` (see [`.gitignore`](.gitignore)). After `git clone`, those directories are absent unless you restore them from a maintainer checkout. If you have the local `tests/` tree, run:
+### Tests
 
 ```bash
 .venv/bin/pytest -v
 ```
 
-Golden fixtures under `tests/fixtures/` cover junior/senior EU layouts, multi-role consulting, and Unicode/diacritic stress cases. See [`docs/TODO.md`](docs/TODO.md) for what is shipped vs. kept local.
+Golden fixtures under `tests/fixtures/` cover junior/senior EU layouts, multi-role consulting, and Unicode/diacritic stress cases (**22 tests**).
 
-Optional LLM extraction benchmark (requires local `tests/fixtures/` and your own LLM for the grading step):
+Optional LLM extraction benchmark (uses `tests/fixtures/` and your own LLM for the grading step):
 
 ```bash
 .venv/bin/python benchmarks/llm_extraction.py prepare --out /tmp/cvfmt-bench
@@ -72,8 +70,8 @@ Optional LLM extraction benchmark (requires local `tests/fixtures/` and your own
 ├── benchmarks/               # Optional LLM PDF extraction benchmark script
 ├── skills/cv-formatter/      # Open-standard SKILL.md + progressive-disclosure references
 ├── src/cvfmt/                # Python + Typst CLI + bundled IBM Plex Sans fonts
-├── tests/                    # Not on GitHub; maintainer-only golden fixtures + pytest
-└── .agents/                  # Not on GitHub; maintainer-only agent rules and notes
+├── tests/                    # Golden fixtures + pytest round-trip suite
+└── .agents/                  # Local only (gitignored): agent rules and notes
 ```
 
 ## Documentation
