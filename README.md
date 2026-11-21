@@ -1,36 +1,50 @@
 # CV Formatter
 
-A standardized, human- and LLM-readable Markdown CV format (`cv-md/1.0`), an open-standard agent skill to rewrite any CV into that format (silently or via guided follow-up questions), and a local Python + Typst CLI to render it into a clean, minimalist, machine-parseable PDF.
+A standardized, human- and LLM-readable Markdown CV format (`cv-md/1.0`), an open-standard agent skill to rewrite any CV into that format (silently or via guided follow-up questions), and a local Python + Typst CLI (`cvfmt`) to render it into a clean, minimalist, machine-parseable PDF.
 
 ## Project Status
 
-**Stage: Research & Specifications Complete** — Ready for implementation once approved.
+**v0.1.0 Implemented & Verified** — Open-standard skill (`skills/cv-formatter/`), Python + Typst + IBM Plex Sans CLI (`cvfmt`), and automated PDF text-layer round-trip tests are working.
+
+## Quickstart (`cvfmt` CLI)
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+
+# Create a starter EU cv-md/1.0 file
+.venv/bin/cvfmt init cv.md
+
+# Validate schema, ATS headings, EU CEFR languages, and LLM evidence rules
+.venv/bin/cvfmt validate cv.md
+
+# Render to minimalist A4 PDF (Tagged PDF / PDF/UA-1, IBM Plex Sans) and verify text layer
+.venv/bin/cvfmt render cv.md --verify
+
+# Optional US Letter override
+.venv/bin/cvfmt render cv.md --paper letter -o cv-us.pdf --verify
+```
+
+Run tests:
+
+```bash
+.venv/bin/pytest -v
+```
+
+## Using the Agent Skill (`skills/cv-formatter/`)
+
+`skills/cv-formatter/` follows the open [agentskills.io](https://agentskills.io/specification) `SKILL.md` standard and can be mounted in Antigravity, Claude Code, Codex, Cursor, or other compatible agents:
+
+- **Silent Mode**: *"Rewrite my CV into cv-md/1.0 format."* — Faithful restructuring with zero invented metrics.
+- **Extended Mode**: *"Use extended mode to interview me and strengthen my CV."* — 2–3 focused rounds of follow-up questions to uncover missing impact, scope, and EU context.
 
 ## Project Structure
 
 ```text
 .
-├── docs/
-│   ├── README.md
-│   ├── spec-cv-markdown.md   # Canonical cv-md/1.0 format specification
-│   ├── spec-skill.md         # Open-standard SKILL.md rewriting skill spec
-│   └── spec-pdf-renderer.md  # Python + Typst + IBM Plex Sans CLI spec
-├── research/
-│   ├── research-plan.md
-│   ├── 01-ats-parsing.md
-│   ├── 02-llm-screening.md
-│   ├── 03-human-cv-best-practices.md
-│   ├── 04-markdown-schema-design.md
-│   ├── 05-skill-design.md
-│   ├── 06-pdf-rendering-and-design.md
-│   └── 07-evaluation-framework.md
-├── .gitignore
-└── README.md
+├── docs/                     # Formal v1 specs and TODO/backlog
+├── research/                 # 7 domain research reports
+├── skills/cv-formatter/      # Open-standard SKILL.md + progressive-disclosure references
+├── src/cvfmt/                # Python + Typst CLI + bundled IBM Plex Sans fonts
+└── tests/                    # 4 EU golden fixtures + automated round-trip test suite
 ```
-
-## Core Design Decisions
-
-- **EU-First Defaults**: A4 paper (`210 × 297 mm`), 1–2 page target, CEFR language levels, GDPR-clean personal details (no DOB, full address, or photo by default), optional work authorization.
-- **Format**: YAML frontmatter + strict canonical CommonMark (`cv-md/1.0`). One clean schema for both ready-to-send CVs (`cv.md`) and optional master archives (`cv-master.md`).
-- **Skill**: Portable `agentskills.io` `SKILL.md` with progressive disclosure (`references/`) supporting **Silent Mode** and **Extended Mode**.
-- **PDF CLI**: Python 3.11+ with the bundled `typst` compiler wheel, Tagged PDF (`PDF/UA-1`), **IBM Plex Sans**, and built-in `--verify` text-layer round-trip checks.

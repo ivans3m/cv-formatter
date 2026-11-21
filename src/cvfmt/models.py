@@ -1,0 +1,107 @@
+"""Data models for cv-md/1.0 documents and validation diagnostics."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+
+CANONICAL_SECTIONS: tuple[str, ...] = (
+    "Summary",
+    "Experience",
+    "Projects",
+    "Skills",
+    "Education",
+    "Languages",
+    "Certifications",
+    "Publications",
+)
+
+CANONICAL_SECTIONS_LOWER: dict[str, str] = {s.lower(): s for s in CANONICAL_SECTIONS}
+
+
+class LinkItem(BaseModel):
+    label: str
+    url: str
+
+
+class Frontmatter(BaseModel):
+    schema_version: str = Field(default="", alias="schema")
+    name: str = ""
+    headline: str | None = None
+    location: str | None = None
+    work_authorization: str | None = None
+    email: str = ""
+    phone: str | None = None
+    links: list[LinkItem] = Field(default_factory=list)
+    paper: str = "a4"
+    lang: str = "en"
+
+    model_config = {"populate_by_name": True}
+
+
+@dataclass
+class SubRole:
+    title: str
+    date_range: str | None = None
+    bullets: list[str] = field(default_factory=list)
+    line: int = 0
+
+
+@dataclass
+class Entry:
+    heading: str
+    primary: str
+    secondary: str | None = None
+    date_range: str | None = None
+    location: str | None = None
+    raw_meta: str | None = None
+    paragraphs: list[str] = field(default_factory=list)
+    bullets: list[str] = field(default_factory=list)
+    sub_roles: list[SubRole] = field(default_factory=list)
+    line: int = 0
+
+
+@dataclass
+class Section:
+    title: str
+    paragraphs: list[str] = field(default_factory=list)
+    bullets: list[str] = field(default_factory=list)
+    entries: list[Entry] = field(default_factory=list)
+    line: int = 0
+
+
+@dataclass
+class CVDocument:
+    frontmatter: Frontmatter
+    sections: list[Section] = field(default_factory=list)
+    raw_frontmatter: dict = field(default_factory=dict)
+    raw_body: str = ""
+    source_path: str | None = None
+
+
+@dataclass
+class ValidationIssue:
+    severity: Literal["error", "warning"]
+    code: str
+    message: str
+    line: int | None = None
+
+
+@dataclass
+class ValidationResult:
+    issues: list[ValidationIssue] = field(default_factory=list)
+
+    @property
+    def errors(self) -> list[ValidationIssue]:
+        return [i for i in self.issues if i.severity == "error"]
+
+    @property
+    def warnings(self) -> list[ValidationIssue]:
+        return [i for i in self.issues if i.severity == "warning"]
+
+    @property
+    def ok(self) -> bool:
+        return len(self.errors) == 0

@@ -2,6 +2,10 @@
 
 Formal specifications and design documents consolidated from our [research phase](../research/research-plan.md).
 
+## Project Tracking
+
+- **[TODO.md](./TODO.md)** — Active task list, implementation notes, and feature backlog.
+
 ## Specifications
 
 - **[spec-cv-markdown.md](./spec-cv-markdown.md)** — Canonical Markdown CV format (`cv-md/1.0`): YAML frontmatter, canonical sections, experience/promotion/freelance syntax, CEFR languages, validation rules, and golden example.
