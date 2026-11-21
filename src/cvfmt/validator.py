@@ -23,8 +23,6 @@ _CEFR_TOKEN_RE = re.compile(r"\b(A1|A2|B1|B2|C1|C2|Native)\b", re.IGNORECASE)
 
 def _validate_date_range(date_range: str) -> bool:
     """Validate 'YYYY-MM – Present', 'YYYY – YYYY', or single 'YYYY-MM'/'YYYY'."""
-    parts = re.split(r"\s*[–—-]\s+(?!\d{2}\b)|\s+[–—-]\s+", date_range.strip())
-    # Safer split: split on spaced en-dash / em-dash / hyphen
     if " – " in date_range:
         parts = [p.strip() for p in date_range.split(" – ")]
     elif " — " in date_range:
@@ -103,7 +101,8 @@ def validate_cv(doc: CVDocument, *, allow_todos: bool = False) -> ValidationResu
             )
         )
 
-    if not fm.email or not _EMAIL_RE.match(fm.email.strip()):
+    email_is_todo = bool(allow_todos and fm.email and _TODO_RE.search(fm.email))
+    if not email_is_todo and (not fm.email or not _EMAIL_RE.match(fm.email.strip())):
         result.issues.append(
             ValidationIssue(
                 severity="error",
@@ -145,7 +144,7 @@ def validate_cv(doc: CVDocument, *, allow_todos: bool = False) -> ValidationResu
                     line=1,
                 )
             )
-        for idx, line in enumerate(doc.raw_body.splitlines(), start=1):
+        for idx, line in enumerate(doc.raw_body.splitlines(), start=doc.body_start_line):
             if _TODO_RE.search(line):
                 result.issues.append(
                     ValidationIssue(

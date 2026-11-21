@@ -9,7 +9,10 @@ from html import unescape
 from html.parser import HTMLParser
 from urllib.parse import urlparse
 
-from cvfmt.linkedin import _build_cv_markdown, normalize_linkedin_date
+from cvfmt.linkedin import _build_cv_markdown
+
+
+MAX_RESPONSE_BYTES = 5 * 1024 * 1024  # 5 MB safety limit
 
 
 class LinkedInAuthwallError(ValueError):
@@ -71,7 +74,9 @@ def fetch_url(url: str, *, timeout: float = 15.0) -> tuple[str, str]:
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         ctype = resp.headers.get("Content-Type", "").lower()
-        raw = resp.read()
+        raw = resp.read(MAX_RESPONSE_BYTES + 1)
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise ValueError(f"Response from {url} exceeded {MAX_RESPONSE_BYTES // (1024 * 1024)} MB limit.")
         encoding = resp.headers.get_content_charset() or "utf-8"
         return raw.decode(encoding, errors="replace"), ctype
 
@@ -344,12 +349,15 @@ def convert_html_cv(html: str, *, source_url: str = "", paper: str = "a4") -> st
             pos = {"title": title, "company": company, "start": "", "end": "Present", "location": "", "bullets": []}
             i += 1
             if i < len(exp_blocks) and _DATE_RANGE_RE.match(exp_blocks[i][1]):
-                d_raw = exp_blocks[i][1]
-                if re.search(r"\s*[–—-]\s*", d_raw):
+                d_raw = exp_blocks[i][1].strip()
+                if re.search(r"\s+[–—-]\s+", d_raw):
+                    parts = re.split(r"\s+[–—-]\s+", d_raw, maxsplit=1)
+                    pos["start"], pos["end"] = parts[0].strip(), parts[1].strip()
+                elif re.match(r"^\d{4}\s*[–—-]\s*(?:Present|\d{4})$", d_raw, re.I):
                     parts = re.split(r"\s*[–—-]\s*", d_raw, maxsplit=1)
                     pos["start"], pos["end"] = parts[0].strip(), parts[1].strip()
                 else:
-                    pos["start"], pos["end"] = d_raw.strip(), d_raw.strip()
+                    pos["start"], pos["end"] = d_raw, d_raw
                 i += 1
             if i < len(exp_blocks) and len(exp_blocks[i][1]) < 60 and "," in exp_blocks[i][1] and not exp_blocks[i][1].endswith("."):
                 pos["location"] = exp_blocks[i][1]

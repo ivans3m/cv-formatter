@@ -191,3 +191,35 @@ email: test@example.com
     entry = doc.sections[0].entries[0]
     assert entry.primary == "Earlier Roles (2003 – 2009)"
     assert entry.secondary == "Acme & Beta"
+
+
+def test_validator_todo_line_number_and_todo_email() -> None:
+    md = """---
+schema: cv-md/1.0
+name: Alex Dev
+email: "[TODO: add email]"
+---
+
+## Experience
+
+### Engineer — Acme
+*2023-01 – Present | Berlin, Germany*
+
+- Built service [TODO: add metric].
+"""
+    doc = parse_cv_text(md)
+    res_strict = validate_cv(doc, allow_todos=False)
+    body_todos = [i for i in res_strict.errors if i.code == "UNRESOLVED_TODO" and i.line and i.line > 1]
+    assert body_todos and body_todos[0].line == 12
+
+    res_allowed = validate_cv(doc, allow_todos=True)
+    assert res_allowed.ok, res_allowed.errors
+
+
+def test_cli_handles_malformed_yaml_cleanly(tmp_path: Path) -> None:
+    bad = tmp_path / "broken.md"
+    bad.write_text("---\nschema: cv-md/1.0\nlinks: [unclosed\n---\n", encoding="utf-8")
+    runner = CliRunner()
+    res = runner.invoke(app, ["validate", str(bad)])
+    assert res.exit_code == 1
+    assert "ERROR: Could not parse" in res.output

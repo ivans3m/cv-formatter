@@ -114,52 +114,77 @@ def test_linkedin_two_column_pdf_import_and_render(tmp_path: Path) -> None:
     import typst
     from cvfmt.renderer import FONTS_DIR
 
-    fake_li_typ = """
+    fake_li_typ = r"""
 #set page(paper: "us-letter", margin: 12mm)
 #set text(font: "IBM Plex Sans", size: 9pt)
 #grid(
   columns: (30%, 66%),
   gutter: 4%,
   [
-    Contact\n
-    marco.rossi\@example.it\n
-    +39 340 123 4567\n
-    www.linkedin.com/in/marcorossi\n
-    Top Skills\n
-    Python\n
-    Kubernetes\n
-    Languages\n
-    Italian (Native or bilingual)\n
-    English (Full professional)\n
+    Contact
+    \
+    marco.rossi\@example.it
+    \
+    +39 340 123 4567
+    \
+    www.linkedin.com/in/marcorossi
+    \
+    Top Skills
+    \
+    Python
+    \
+    Kubernetes
+    \
+    Languages
+    \
+    Italian (Native or bilingual)
+    \
+    English (Full professional)
   ],
   [
-    Marco Rossi\n
-    Senior Platform Engineer\n
-    Milan, Italy\n
-    Summary\n
-    Platform engineer focused on reliable cloud systems across Europe.\n
-    Experience\n
-    CloudItalia\n
-    Senior Platform Engineer\n
-    March 2022 - Present (4 years)\n
-    Milan, Italy\n
-    Built Kubernetes clusters serving 2M daily users.\n
-    Education\n
-    Politecnico di Milano\n
-    M.Sc. Computer Engineering · (2016 - 2018)\n
+    Marco Rossi
+    \
+    Senior Platform Engineer
+    \
+    Milan, Italy
+    \
+    Summary
+    \
+    Platform engineer focused on reliable cloud systems across Europe.
+    \
+    Experience
+    \
+    CloudItalia
+    \
+    Senior Platform Engineer
+    \
+    March 2022 - Present (4 years)
+    \
+    Milan, Italy
+    \
+    Built Kubernetes clusters serving 2M daily users.
+    \
+    Education
+    \
+    Politecnico di Milano
+    \
+    M.Sc. Computer Engineering · (2016 - 2018)
   ],
 )
 """
     li_pdf = tmp_path / "Profile.pdf"
-    li_pdf.write_bytes(
-        typst.compile(fake_li_typ.encode("utf-8"), font_paths=[str(FONTS_DIR)], ignore_system_fonts=True)
+    orig_bytes = typst.compile(
+        fake_li_typ.encode("utf-8"), font_paths=[str(FONTS_DIR)], ignore_system_fonts=True
     )
+    li_pdf.write_bytes(orig_bytes)
 
-    out_pdf = tmp_path / "marco-cv.pdf"
+    # Without -o, cvfmt linkedin Profile.pdf --pdf must write Profile-cv.pdf and NOT overwrite Profile.pdf
     runner = CliRunner()
-    res = runner.invoke(app, ["linkedin", str(li_pdf), "--pdf", "-o", str(out_pdf), "--verify"])
+    res = runner.invoke(app, ["linkedin", str(li_pdf), "--pdf", "--verify"])
     assert res.exit_code == 0, res.output
+    out_pdf = tmp_path / "Profile-cv.pdf"
     assert out_pdf.exists()
+    assert li_pdf.read_bytes() == orig_bytes
     md_text = out_pdf.with_suffix(".md").read_text(encoding="utf-8")
     assert "Marco Rossi" in md_text
     assert "marco.rossi@example.it" in md_text

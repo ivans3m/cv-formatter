@@ -13,6 +13,27 @@ from cvfmt.typst_gen import generate_typst
 FONTS_DIR = Path(__file__).resolve().parent / "fonts"
 
 
+def _compile_typst(typst_source: str, **kwargs):
+    """Compile Typst source with bundled IBM Plex Sans, falling back to system fonts only on missing glyphs."""
+    data = typst_source.encode("utf-8")
+    try:
+        return typst.compile(
+            data,
+            font_paths=[str(FONTS_DIR)],
+            ignore_system_fonts=True,
+            **kwargs,
+        )
+    except typst.TypstError as exc:
+        if "could not be displayed with font" not in str(exc):
+            raise
+        return typst.compile(
+            data,
+            font_paths=[str(FONTS_DIR)],
+            ignore_system_fonts=False,
+            **kwargs,
+        )
+
+
 def compile_pdf(
     doc: CVDocument,
     output_path: str | Path,
@@ -29,23 +50,11 @@ def compile_pdf(
     out.parent.mkdir(parents=True, exist_ok=True)
 
     standards = ["ua-1"] if pdf_ua else []
-    try:
-        pdf_bytes = typst.compile(
-            typst_source.encode("utf-8"),
-            font_paths=[str(FONTS_DIR)],
-            ignore_system_fonts=True,
-            pdf_tags=True,
-            pdf_standards=standards,
-        )
-    except Exception:
-        # Fallback: allow system font fallback if document contains non-Latin scripts (e.g. CJK)
-        pdf_bytes = typst.compile(
-            typst_source.encode("utf-8"),
-            font_paths=[str(FONTS_DIR)],
-            ignore_system_fonts=False,
-            pdf_tags=True,
-            pdf_standards=standards,
-        )
+    pdf_bytes = _compile_typst(
+        typst_source,
+        pdf_tags=True,
+        pdf_standards=standards,
+    )
     out.write_bytes(pdf_bytes)
     return out
 
@@ -66,10 +75,8 @@ def compile_pngs(
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    result = typst.compile(
-        typst_source.encode("utf-8"),
-        font_paths=[str(FONTS_DIR)],
-        ignore_system_fonts=True,
+    result = _compile_typst(
+        typst_source,
         format="png",
         ppi=ppi,
     )

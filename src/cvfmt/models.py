@@ -80,6 +80,7 @@ class CVDocument:
     sections: list[Section] = field(default_factory=list)
     raw_frontmatter: dict = field(default_factory=dict)
     raw_body: str = ""
+    body_start_line: int = 1
     source_path: str | None = None
 
 

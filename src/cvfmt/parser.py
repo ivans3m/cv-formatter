@@ -17,7 +17,6 @@ _H4_RE = re.compile(r"^####\s+(.+?)\s*$")
 _BULLET_RE = re.compile(r"^[-*]\s+(.+?)\s*$")
 _ITALIC_LINE_RE = re.compile(r"^\*(.+?)\*\s*$")
 _SUBROLE_DATE_RE = re.compile(r"^(.*?)\s+\*\(([^)]+)\)\*\s*$")
-_TITLE_SPLIT_RE = re.compile(r"\s+[—–]\s+|\s+--\s+")
 
 
 def split_frontmatter(text: str) -> tuple[dict, str, int]:
@@ -184,6 +183,7 @@ def parse_cv_text(text: str, source_path: str | None = None) -> CVDocument:
         sections=sections,
         raw_frontmatter=raw_fm,
         raw_body=body,
+        body_start_line=body_start_line,
         source_path=source_path,
     )
 

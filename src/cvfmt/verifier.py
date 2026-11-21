@@ -29,6 +29,14 @@ def _normalize_ws(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _strip_md_inline(text: str) -> str:
+    text = re.sub(r"\[([^\]]+)\]\(https?://[^)\s]+\)", r"\1", text)
+    text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+    text = re.sub(r"\*([^*]+)\*", r"\1", text)
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+    return text
+
+
 def _extract_pdf_text_and_links(pdf_path: Path) -> tuple[str, str, int, set[str]]:
     """Extract text via both pypdf and pdfplumber, plus URI link annotations."""
     reader = PdfReader(str(pdf_path))
@@ -101,13 +109,14 @@ def verify_pdf(doc: CVDocument, pdf_path: str | Path) -> VerificationReport:
             else:
                 cursor = idx + len(section.title)
         for entry in section.entries:
-            idx = norm_plumber.find(entry.primary, cursor)
+            plain_primary = _strip_md_inline(entry.primary)
+            idx = norm_plumber.find(plain_primary, cursor)
             if idx == -1:
                 report.errors.append(
-                    f"Entry heading '{entry.primary}' missing or out of reading order in PDF text."
+                    f"Entry heading '{plain_primary}' missing or out of reading order in PDF text."
                 )
             else:
-                cursor = idx + len(entry.primary)
+                cursor = idx + len(plain_primary)
 
     # 4. Unicode diacritics & ligature-prone words fidelity across BOTH extractors
     source_words = set(re.findall(r"\b\w*(?:fi|fl|[^\x00-\x7F])\w*\b", f"{fm.name}\n{doc.raw_body}"))

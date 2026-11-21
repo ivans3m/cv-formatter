@@ -160,6 +160,23 @@ def _render_entry(entry: Entry) -> list[str]:
 
 def _render_section(section: Section, *, accent: str) -> list[str]:
     lines: list[str] = []
+    compact_bullets = section.title.lower() in ("skills", "languages", "certifications", "publications")
+    keep_together = (
+        compact_bullets
+        and not section.entries
+        and not section.paragraphs
+        and 0 < len(section.bullets) <= 5
+    )
+
+    if keep_together:
+        lines.append("#block(breakable: false, above: 0pt, below: 0pt)[")
+        if section.title:
+            lines.append(f"  == {escape_typst(section.title)}")
+        lines.append("  #v(2pt)")
+        lines.extend("  " + ln for ln in _render_bullets(section.bullets, compact=True))
+        lines.append("]")
+        return lines
+
     if section.title:
         lines.append(f"== {escape_typst(section.title)}")
 
@@ -174,7 +191,6 @@ def _render_section(section: Section, *, accent: str) -> list[str]:
         else:
             lines.append(f"#block(above: 2pt, below: 4pt)[{md_inline_to_typst(p)}]")
 
-    compact_bullets = section.title.lower() in ("skills", "languages", "certifications", "publications")
     if section.bullets:
         lines.append("#v(2pt)")
         lines.extend(_render_bullets(section.bullets, compact=compact_bullets))

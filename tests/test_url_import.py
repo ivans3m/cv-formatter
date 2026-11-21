@@ -133,3 +133,19 @@ def test_cli_from_url_json_resume_to_pdf_verified(tmp_path: Path) -> None:
     assert res.exit_code == 0, res.output
     assert pdf_out.exists()
     assert pdf_out.with_suffix(".md").exists()
+
+
+def test_html_single_iso_month_date_not_split() -> None:
+    html = """
+    <html><head><title>CV – Jane</title></head><body><main>
+      <h2>Experience</h2>
+      <h3>Consultant @ Acme</h3>
+      <p>2023-04</p>
+      <p>Delivered audit.</p>
+      <a href="mailto:jane@example.com">Email</a>
+    </main></body></html>
+    """
+    md = convert_html_cv(html)
+    assert "*2023-04 – 2023-04*" in md
+    doc = parse_cv_text(md)
+    assert validate_cv(doc).ok

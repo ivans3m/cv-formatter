@@ -1,4 +1,4 @@
-"""CLI entry point for cvfmt: validate, render, and init cv-md/1.0 CVs."""
+"""CLI entry point for cvfmt: validate, render, init, linkedin, and from-url."""
 
 from __future__ import annotations
 
@@ -6,9 +6,12 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+import yaml
+from pydantic import ValidationError
 
 from cvfmt import __version__
 from cvfmt.linkedin import import_linkedin
+from cvfmt.models import CVDocument
 from cvfmt.parser import parse_cv_file, parse_cv_text
 from cvfmt.renderer import compile_pdf
 from cvfmt.typst_gen import normalize_hex_color
@@ -77,6 +80,72 @@ def _print_validation(result) -> None:
         typer.secho(f"WARN  [{issue.code}]{loc}: {issue.message}", fg=typer.colors.YELLOW, err=True)
 
 
+def _load_cv_or_exit(path: Path) -> CVDocument:
+    try:
+        return parse_cv_file(path)
+    except (yaml.YAMLError, ValidationError, ValueError, OSError) as exc:
+        typer.secho(f"ERROR: Could not parse {path}: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+
+def _validate_render_options(
+    paper: str | None, accent: str | None
+) -> tuple[str | None, str | None]:
+    normalized_paper: str | None = None
+    if paper is not None:
+        if paper.lower() not in ("a4", "letter"):
+            typer.secho(
+                f"ERROR: --paper must be 'a4' or 'letter' (got {paper!r}).",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        normalized_paper = paper.lower()
+
+    normalized_accent: str | None = None
+    if accent is not None:
+        try:
+            normalized_accent = normalize_hex_color(accent)
+        except ValueError as exc:
+            typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+
+    return normalized_paper, normalized_accent
+
+
+def _compile_and_verify(
+    doc: CVDocument,
+    out_path: Path,
+    *,
+    paper: str | None,
+    accent: str | None,
+    verify: bool,
+    strict: bool = False,
+) -> None:
+    try:
+        compile_pdf(doc, out_path, paper_override=paper, accent_override=accent)
+    except Exception as exc:
+        typer.secho(f"ERROR: Typst compilation failed: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2)
+
+    typer.secho(f"Rendered: {out_path}", fg=typer.colors.GREEN)
+
+    if verify:
+        report = verify_pdf(doc, out_path)
+        for err in report.errors:
+            typer.secho(f"VERIFY ERROR: {err}", fg=typer.colors.RED, err=True)
+        for warn in report.warnings:
+            typer.secho(f"VERIFY WARN : {warn}", fg=typer.colors.YELLOW, err=True)
+
+        if not report.ok or (strict and report.warnings):
+            raise typer.Exit(code=2)
+
+        typer.secho(
+            f"Verified: {report.page_count} page(s), {report.link_count} clickable link(s), text layer clean.",
+            fg=typer.colors.GREEN,
+        )
+
+
 @app.command()
 def validate(
     path: Path = typer.Argument(..., exists=True, readable=True, help="Path to cv-md/1.0 Markdown file."),
@@ -84,7 +153,7 @@ def validate(
     strict: bool = typer.Option(False, "--strict", help="Treat warnings as errors."),
 ) -> None:
     """Validate a cv-md/1.0 file against schema, ATS, and LLM rules."""
-    doc = parse_cv_file(path)
+    doc = _load_cv_or_exit(path)
     result = validate_cv(doc, allow_todos=allow_todos)
     _print_validation(result)
 
@@ -112,19 +181,8 @@ def render(
     verify: bool = typer.Option(False, "--verify", help="Run PDF text-layer round-trip check after rendering."),
 ) -> None:
     """Validate and render a cv-md/1.0 file to a minimalist PDF."""
-    if paper is not None and paper.lower() not in ("a4", "letter"):
-        typer.secho(f"ERROR: --paper must be 'a4' or 'letter' (got {paper!r}).", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1)
-
-    normalized_accent: str | None = None
-    if accent is not None:
-        try:
-            normalized_accent = normalize_hex_color(accent)
-        except ValueError as exc:
-            typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
-            raise typer.Exit(code=1)
-
-    doc = parse_cv_file(path)
+    norm_paper, norm_accent = _validate_render_options(paper, accent)
+    doc = _load_cv_or_exit(path)
     result = validate_cv(doc, allow_todos=allow_todos)
     _print_validation(result)
 
@@ -132,28 +190,14 @@ def render(
         raise typer.Exit(code=1)
 
     out_path = output or path.with_suffix(".pdf")
-    try:
-        compile_pdf(doc, out_path, paper_override=paper, accent_override=normalized_accent)
-    except Exception as exc:
-        typer.secho(f"ERROR: Typst compilation failed: {exc}", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=2)
-
-    typer.secho(f"Rendered: {out_path}", fg=typer.colors.GREEN)
-
-    if verify:
-        report = verify_pdf(doc, out_path)
-        for err in report.errors:
-            typer.secho(f"VERIFY ERROR: {err}", fg=typer.colors.RED, err=True)
-        for warn in report.warnings:
-            typer.secho(f"VERIFY WARN : {warn}", fg=typer.colors.YELLOW, err=True)
-
-        if not report.ok or (strict and report.warnings):
-            raise typer.Exit(code=2)
-
-        typer.secho(
-            f"Verified: {report.page_count} page(s), {report.link_count} clickable link(s), text layer clean.",
-            fg=typer.colors.GREEN,
-        )
+    _compile_and_verify(
+        doc,
+        out_path,
+        paper=norm_paper,
+        accent=norm_accent,
+        verify=verify,
+        strict=strict,
+    )
 
 
 @app.command()
@@ -201,26 +245,29 @@ def linkedin(
     ),
 ) -> None:
     """Import a LinkedIn profile export (.pdf, .zip, or CSV folder) into cv-md/1.0 (and optionally PDF)."""
-    if paper.lower() not in ("a4", "letter"):
-        typer.secho(f"ERROR: --paper must be 'a4' or 'letter' (got {paper!r}).", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1)
-
-    normalized_accent: str | None = None
-    if accent is not None:
-        try:
-            normalized_accent = normalize_hex_color(accent)
-        except ValueError as exc:
-            typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
-            raise typer.Exit(code=1)
+    norm_paper, norm_accent = _validate_render_options(paper, accent)
+    assert norm_paper is not None
 
     try:
-        md_text = import_linkedin(source, paper=paper.lower())
+        md_text = import_linkedin(source, paper=norm_paper)
     except Exception as exc:
         typer.secho(f"ERROR: Failed to import LinkedIn export: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
     if pdf:
-        pdf_out = output if (output and output.suffix.lower() == ".pdf") else (output or source).with_suffix(".pdf")
+        if output is not None:
+            pdf_out = output if output.suffix.lower() == ".pdf" else output.with_suffix(".pdf")
+        elif source.suffix.lower() == ".pdf":
+            pdf_out = source.with_name(f"{source.stem}-cv.pdf")
+        else:
+            pdf_out = source.with_suffix(".pdf")
+        if source.is_file() and pdf_out.resolve() == source.resolve():
+            typer.secho(
+                f"ERROR: Refusing to overwrite input file {source}. Specify a different -o path.",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
         md_out = pdf_out.with_suffix(".md")
     else:
         md_out = output or source.with_suffix(".md")
@@ -236,22 +283,19 @@ def linkedin(
 
     if pdf and pdf_out is not None:
         if not val.ok:
-            typer.secho("ERROR: Imported CV has schema errors; fix them before rendering PDF.", fg=typer.colors.RED, err=True)
-            raise typer.Exit(code=1)
-        compile_pdf(doc, pdf_out, paper_override=paper.lower(), accent_override=normalized_accent)
-        typer.secho(f"Rendered PDF -> {pdf_out}", fg=typer.colors.GREEN)
-        if verify:
-            report = verify_pdf(doc, pdf_out)
-            for err in report.errors:
-                typer.secho(f"VERIFY ERROR: {err}", fg=typer.colors.RED, err=True)
-            for warn in report.warnings:
-                typer.secho(f"VERIFY WARN : {warn}", fg=typer.colors.YELLOW, err=True)
-            if not report.ok:
-                raise typer.Exit(code=2)
             typer.secho(
-                f"Verified: {report.page_count} page(s), {report.link_count} clickable link(s), text layer clean.",
-                fg=typer.colors.GREEN,
+                "ERROR: Imported CV has schema errors; fix them before rendering PDF.",
+                fg=typer.colors.RED,
+                err=True,
             )
+            raise typer.Exit(code=1)
+        _compile_and_verify(
+            doc,
+            pdf_out,
+            paper=norm_paper,
+            accent=norm_accent,
+            verify=verify,
+        )
 
 
 @app.command("from-url")
@@ -284,20 +328,11 @@ def from_url(
     ),
 ) -> None:
     """Import a public CV webpage, JSON Resume URL, or raw cv-md/1.0 URL into cv-md/1.0 (and optionally PDF)."""
-    if paper.lower() not in ("a4", "letter"):
-        typer.secho(f"ERROR: --paper must be 'a4' or 'letter' (got {paper!r}).", fg=typer.colors.RED, err=True)
-        raise typer.Exit(code=1)
-
-    normalized_accent: str | None = None
-    if accent is not None:
-        try:
-            normalized_accent = normalize_hex_color(accent)
-        except ValueError as exc:
-            typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
-            raise typer.Exit(code=1)
+    norm_paper, norm_accent = _validate_render_options(paper, accent)
+    assert norm_paper is not None
 
     try:
-        md_text = import_from_url(url, paper=paper.lower())
+        md_text = import_from_url(url, paper=norm_paper)
     except LinkedInAuthwallError as exc:
         typer.secho(f"NOTICE: {exc}", fg=typer.colors.YELLOW, err=True)
         raise typer.Exit(code=1)
@@ -323,22 +358,19 @@ def from_url(
 
     if pdf and pdf_out is not None:
         if not val.ok:
-            typer.secho("ERROR: Imported CV has schema errors; fix them before rendering PDF.", fg=typer.colors.RED, err=True)
-            raise typer.Exit(code=1)
-        compile_pdf(doc, pdf_out, paper_override=paper.lower(), accent_override=normalized_accent)
-        typer.secho(f"Rendered PDF -> {pdf_out}", fg=typer.colors.GREEN)
-        if verify:
-            report = verify_pdf(doc, pdf_out)
-            for err in report.errors:
-                typer.secho(f"VERIFY ERROR: {err}", fg=typer.colors.RED, err=True)
-            for warn in report.warnings:
-                typer.secho(f"VERIFY WARN : {warn}", fg=typer.colors.YELLOW, err=True)
-            if not report.ok:
-                raise typer.Exit(code=2)
             typer.secho(
-                f"Verified: {report.page_count} page(s), {report.link_count} clickable link(s), text layer clean.",
-                fg=typer.colors.GREEN,
+                "ERROR: Imported CV has schema errors; fix them before rendering PDF.",
+                fg=typer.colors.RED,
+                err=True,
             )
+            raise typer.Exit(code=1)
+        _compile_and_verify(
+            doc,
+            pdf_out,
+            paper=norm_paper,
+            accent=norm_accent,
+            verify=verify,
+        )
 
 
 @app.command()
