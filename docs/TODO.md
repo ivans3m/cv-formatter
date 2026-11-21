@@ -44,6 +44,14 @@ Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewr
 
 ## Backlog
 
+- [ ] **Role / Job Description tailoring skill**
+  - *Comment*: Add a dedicated skill (or sub-workflow) that takes an existing `cv-md/1.0` CV + a target role or Job Description and tweaks positioning, summary, bullet emphasis, and keyword alignment strictly truthfully for that specific vacancy.
+- [ ] **Dreamer mode (autonomous enhanced CV generation)**
+  - *Comment*: Autonomous mode for the CV generation/tailoring skill that imagines the strongest, most plausible answers to all Extended Mode follow-up questions to match a target role or Job Description—clearly marking imagined/aspirational additions vs. verified facts so the candidate can review, edit, or use it as a benchmark/gap analysis.
+- [ ] **CLI `--base` flag for tailoring (`strict` or `dreamer` mode)**
+  - *Comment*: Add `--base <base.md>` (plus mode flag `--mode strict|dreamer`) to `cvfmt` to use an existing `cv-md/1.0` file (such as `cv-master.md`) as the base input for generating a role-tailored `.md` / `.pdf`.
+- [ ] **Big Update: Simple Web App (CV → `cv-md/1.0` & PDF)**
+  - *Comment*: Lightweight web app where users upload or paste a CV (or URL), parse/rewrite it using deterministic algorithmic parsing or free-tier AI model APIs (e.g., NVIDIA NIM / Groq), and download a clean `cv-md/1.0` Markdown file and/or rendered Warm Editorial PDF.
 - [ ] **Direct LinkedIn profile URL import (without manual export)**
   - *Comment*: LinkedIn blocks direct unauthenticated HTTP fetches (HTTP 999 / authwall). Explore ToS-compliant approaches later (e.g., official OAuth / user-authenticated browser extension or BYO compliant enrichment API key).
 - [ ] **Polish PDF design**
