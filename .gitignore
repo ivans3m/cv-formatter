@@ -15,6 +15,9 @@ dist/
 build/
 .pytest_cache/
 
-# Personal blog post and its agent rule (kept local, never committed)
+# Local agent config and test suite (kept local, never committed)
+.agents/
+tests/
+
+# Personal blog post (kept local, never committed)
 docs/blog/
-.agents/rules/blog-updates.md
