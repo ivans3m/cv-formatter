@@ -24,6 +24,10 @@ python3 -m venv .venv
 # Optional custom accent color (6-digit hex, default: #71717A light grey) or US Letter override
 .venv/bin/cvfmt render cv.md --accent "#0F766E" -o cv-teal.pdf --verify
 .venv/bin/cvfmt render cv.md --paper letter -o cv-us.pdf --verify
+
+# Import LinkedIn Data Export (.zip / CSV folder) or 'Save to PDF' (Profile.pdf) directly to cv-md/1.0 + PDF
+.venv/bin/cvfmt linkedin Profile.pdf --pdf -o cv.pdf --verify
+.venv/bin/cvfmt linkedin linkedin-export.zip --pdf --accent "#0F766E" --verify
 ```
 
 Run tests:

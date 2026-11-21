@@ -8,7 +8,8 @@ from typing import Optional
 import typer
 
 from cvfmt import __version__
-from cvfmt.parser import parse_cv_file
+from cvfmt.linkedin import import_linkedin
+from cvfmt.parser import parse_cv_file, parse_cv_text
 from cvfmt.renderer import compile_pdf
 from cvfmt.typst_gen import normalize_hex_color
 from cvfmt.validator import validate_cv
@@ -166,6 +167,90 @@ def init(
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(STARTER_TEMPLATE, encoding="utf-8")
     typer.secho(f"Created starter CV: {path}", fg=typer.colors.GREEN)
+
+
+@app.command()
+def linkedin(
+    source: Path = typer.Argument(
+        ...,
+        exists=True,
+        help="LinkedIn 'Save to PDF' (.pdf), official Data Export (.zip), or CSV folder.",
+    ),
+    output: Optional[Path] = typer.Option(
+        None,
+        "-o",
+        "--output",
+        help="Output .md path (or .pdf path when --pdf is set).",
+    ),
+    pdf: bool = typer.Option(
+        False,
+        "--pdf",
+        help="Also render directly to a Warm Editorial PDF using cvfmt.",
+    ),
+    paper: str = typer.Option("a4", "--paper", help="Paper size: a4 (default) or letter."),
+    accent: Optional[str] = typer.Option(
+        None,
+        "--accent",
+        help="Optional 6-digit hex accent color for --pdf (default: #71717A light grey).",
+    ),
+    verify: bool = typer.Option(
+        False,
+        "--verify",
+        help="Run PDF text-layer verification when --pdf is set.",
+    ),
+) -> None:
+    """Import a LinkedIn profile export (.pdf, .zip, or CSV folder) into cv-md/1.0 (and optionally PDF)."""
+    if paper.lower() not in ("a4", "letter"):
+        typer.secho(f"ERROR: --paper must be 'a4' or 'letter' (got {paper!r}).", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    normalized_accent: str | None = None
+    if accent is not None:
+        try:
+            normalized_accent = normalize_hex_color(accent)
+        except ValueError as exc:
+            typer.secho(f"ERROR: {exc}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+
+    try:
+        md_text = import_linkedin(source, paper=paper.lower())
+    except Exception as exc:
+        typer.secho(f"ERROR: Failed to import LinkedIn export: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    if pdf:
+        pdf_out = output if (output and output.suffix.lower() == ".pdf") else (output or source).with_suffix(".pdf")
+        md_out = pdf_out.with_suffix(".md")
+    else:
+        md_out = output or source.with_suffix(".md")
+        pdf_out = None
+
+    md_out.parent.mkdir(parents=True, exist_ok=True)
+    md_out.write_text(md_text, encoding="utf-8")
+    typer.secho(f"Imported LinkedIn -> {md_out}", fg=typer.colors.GREEN)
+
+    doc = parse_cv_text(md_text, source_path=str(md_out))
+    val = validate_cv(doc, allow_todos=True)
+    _print_validation(val)
+
+    if pdf and pdf_out is not None:
+        if not val.ok:
+            typer.secho("ERROR: Imported CV has schema errors; fix them before rendering PDF.", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+        compile_pdf(doc, pdf_out, paper_override=paper.lower(), accent_override=normalized_accent)
+        typer.secho(f"Rendered PDF -> {pdf_out}", fg=typer.colors.GREEN)
+        if verify:
+            report = verify_pdf(doc, pdf_out)
+            for err in report.errors:
+                typer.secho(f"VERIFY ERROR: {err}", fg=typer.colors.RED, err=True)
+            for warn in report.warnings:
+                typer.secho(f"VERIFY WARN : {warn}", fg=typer.colors.YELLOW, err=True)
+            if not report.ok:
+                raise typer.Exit(code=2)
+            typer.secho(
+                f"Verified: {report.page_count} page(s), {report.link_count} clickable link(s), text layer clean.",
+                fg=typer.colors.GREEN,
+            )
 
 
 @app.command()
