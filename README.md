@@ -1,8 +1,8 @@
 # CV Formatter
 
-A standardized, human- and LLM-readable Markdown CV format (`cv-md/1.0`), an open-standard agent skill to rewrite any CV into that format (silently or via guided follow-up questions), and a local Python + Typst CLI (`cvfmt`) to render it into a clean, minimalist, machine-parseable PDF.
+A standardized, human- and LLM-readable Markdown CV format (`cv-md/1.1`, backward-compatible with `cv-md/1.0`), an open-standard agent skill to rewrite any CV into that format (silently or via guided follow-up questions, with a Markdown-only `## Facts` memory bank that never exports to PDF), and a local Python + Typst CLI (`cvfmt`) to render it into a clean, minimalist, machine-parseable PDF.
 
-**Repository:** [github.com/ivans3m/cv-formatter](https://github.com/ivans3m/cv-formatter) · **License:** [MIT](LICENSE)
+**Repository:** [github.com/ivans3m/cv-formatter](https://github.com/ivans3m/cv-formatter) · **License:** [MIT](LICENSE) · [![CI](https://github.com/ivans3m/cv-formatter/actions/workflows/ci.yml/badge.svg)](https://github.com/ivans3m/cv-formatter/actions/workflows/ci.yml)
 
 ## Project Status
 
@@ -86,4 +86,4 @@ Optional LLM extraction benchmark (uses `tests/fixtures/` and your own LLM for t
 
 ## Contributing
 
-This is an early-stage open project. Read the specs under `docs/` before changing schema or validation behavior. Open issues or pull requests on GitHub for bugs and feature ideas listed in the backlog.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, design guardrails, and PR guidelines. Read the specs under `docs/` before changing schema or validation behavior, and open issues or pull requests on GitHub for bugs and feature ideas listed in [docs/TODO.md](docs/TODO.md).

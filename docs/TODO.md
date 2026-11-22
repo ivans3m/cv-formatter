@@ -39,14 +39,15 @@ Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewr
 - [x] **Code Review & Hardening Pass** — Fixed LinkedIn `Profile.pdf` overwrite guard, capped `fetch_url` at 5 MB, added clean YAML/Pydantic CLI error handling, narrowed Typst font fallback, fixed `YYYY-MM` HTML date splitting, fixed `UNRESOLVED_TODO` line numbers and `[TODO]` email allowance, deduplicated `cli.py`, prevented orphan splits on compact `Skills`/`Languages` sections, and eliminated pytest warnings.
 - [x] **Documentation sync (post-GitHub)** — Root and `docs/` README indexes updated for public repo layout, MIT license, tracked `tests/`, local-only `.agents/`, CLI quickstart, and 22-test verification story.
 - [x] **Sync `spec-pdf-renderer.md` with v0.1.0 CLI** — Documented `linkedin`, `from-url`, `version`, importer flags, exit codes, URL fetch limits; fixed research/spec cross-links (`../research/…`, relative `docs/` paths; removed `file://` URLs).
+- [x] **GitHub Actions CI** — Added `.github/workflows/ci.yml` running `pytest -v` and CLI smoke checks (`cvfmt version`, `validate`, `render --verify`) on `main` and PRs across Python 3.11–3.13.
+- [x] **Public contributor docs** — Added `CONTRIBUTING.md` and `.github/ISSUE_TEMPLATE/` (`bug_report.yml`, `feature_request.yml`, `config.yml`), linked from `README.md`.
+- [x] **Schema `cv-md/1.1` & non-exported `## Facts` section** — Added `## Facts` as an optional canonical Markdown-only memory bank (`Name — Description` bullets + optional `###` subheadings), omitted from PDF rendering and verified anti-leak in `cvfmt render --verify`, with backward-compatible `cv-md/1.0` support and updated skill instructions.
 
 ---
 
 ## Up Next
 
-- [ ] **GitHub Actions CI** — Run `pytest` on `main` (and PRs) with `pip install -e ".[dev]"` and bundled Typst wheel.
-- [ ] **Refresh public contributor docs** — Optional: `CONTRIBUTING.md` and issue templates.
-- *(All v1 feature Up Next items complete; see Backlog for product work.)*
+- *(All v0.1.0 Up Next items complete — pick the next milestone from Backlog below.)*
 
 ---
 

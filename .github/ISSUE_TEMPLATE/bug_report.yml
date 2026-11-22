@@ -1,0 +1,49 @@
+name: Bug report
+description: Report a bug in cvfmt, the cv-md/1.0 validator, importers, or the agent skill
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Component
+      options:
+        - CLI / PDF Renderer (cvfmt render)
+        - Schema / Validator (cvfmt validate)
+        - LinkedIn Importer (cvfmt linkedin)
+        - URL Importer (cvfmt from-url)
+        - Agent Skill (skills/cv-formatter)
+        - Documentation / Specs
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear, concise description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Command run and a minimal anonymized cv-md/1.0 snippet (do not include real personal data).
+      placeholder: |
+        1. Run `cvfmt render sample.md --verify`
+        2. Observe error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen instead.
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, and cvfmt version (`cvfmt version`).
+      placeholder: "macOS 15, Python 3.12, cvfmt 0.1.0"

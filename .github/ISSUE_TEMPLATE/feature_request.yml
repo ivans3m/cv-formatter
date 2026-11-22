@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose a new feature, CLI option, importer, or skill workflow
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Component
+      options:
+        - CLI / PDF Renderer
+        - Schema / Validator (cv-md/1.0)
+        - Importers (LinkedIn / URL / other)
+        - Agent Skill (skills/cv-formatter)
+        - Web App / Tooling
+        - Documentation / Specs
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem does this solve or what workflow does it enable?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the CLI flags, schema changes, or behavior you envision.
+    validations:
+      required: true
+
+  - type: textarea
+    id: ats_impact
+    attributes:
+      label: ATS / LLM readability considerations
+      description: Does this affect single-column PDF flow, PDF/UA-1 tagging, or cv-md/1.0 compatibility?
