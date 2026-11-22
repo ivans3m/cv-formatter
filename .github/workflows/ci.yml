@@ -46,3 +46,5 @@ jobs:
           cvfmt version
           cvfmt validate tests/fixtures/senior-eu-2page.md
           cvfmt render tests/fixtures/senior-eu-2page.md -o /tmp/ci-smoke.pdf --verify
+          cvfmt tailor tests/fixtures/jd-backend-sample.txt --base tests/fixtures/senior-eu-2page.md -o /tmp/ci-tailored.md --mode strict
+          cvfmt validate /tmp/ci-tailored.md

@@ -16,8 +16,10 @@ from cvfmt.parser import parse_cv_file, parse_cv_text
 from cvfmt.renderer import compile_pdf
 from cvfmt.typst_gen import normalize_hex_color
 from cvfmt.url_import import LinkedInAuthwallError, import_from_url
+from cvfmt.tailor import coverage_report, tailor_strict, write_prepare_bundle
 from cvfmt.validator import validate_cv
 from cvfmt.verifier import verify_pdf
+from cvfmt.writer import document_to_markdown
 
 
 app = typer.Typer(
@@ -126,9 +128,16 @@ def _compile_and_verify(
     accent: str | None,
     verify: bool,
     strict: bool = False,
+    allow_aspirational: bool = False,
 ) -> None:
     try:
-        compile_pdf(doc, out_path, paper_override=paper, accent_override=accent)
+        compile_pdf(
+            doc,
+            out_path,
+            paper_override=paper,
+            accent_override=accent,
+            include_aspirational=allow_aspirational,
+        )
     except Exception as exc:
         typer.secho(f"ERROR: Typst compilation failed: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2)
@@ -155,11 +164,16 @@ def _compile_and_verify(
 def validate(
     path: Path = typer.Argument(..., exists=True, readable=True, help="Path to cv-md/1.0 Markdown file."),
     allow_todos: bool = typer.Option(False, "--allow-todos", help="Allow [TODO] placeholders."),
+    allow_aspirational: bool = typer.Option(
+        False,
+        "--allow-aspirational",
+        help="Allow **(Aspirational)** bullets in dreamer-tailored CVs.",
+    ),
     strict: bool = typer.Option(False, "--strict", help="Treat warnings as errors."),
 ) -> None:
     """Validate a cv-md/1.0 file against schema, ATS, and LLM rules."""
     doc = _load_cv_or_exit(path)
-    result = validate_cv(doc, allow_todos=allow_todos)
+    result = validate_cv(doc, allow_todos=allow_todos, allow_aspirational=allow_aspirational)
     _print_validation(result)
 
     if not result.ok or (strict and result.warnings):
@@ -182,13 +196,18 @@ def render(
         help="Override accent color as 6-digit hex (default: #71717A light grey; e.g. '#0F766E' or '1A73E8').",
     ),
     allow_todos: bool = typer.Option(False, "--allow-todos", help="Allow rendering with [TODO] placeholders."),
+    allow_aspirational: bool = typer.Option(
+        False,
+        "--allow-aspirational",
+        help="Include **(Aspirational)** dreamer bullets in the PDF (gap-analysis only).",
+    ),
     strict: bool = typer.Option(False, "--strict", help="Treat warnings as errors."),
     verify: bool = typer.Option(False, "--verify", help="Run PDF text-layer round-trip check after rendering."),
 ) -> None:
     """Validate and render a cv-md/1.0 file to a minimalist PDF."""
     norm_paper, norm_accent = _validate_render_options(paper, accent)
     doc = _load_cv_or_exit(path)
-    result = validate_cv(doc, allow_todos=allow_todos)
+    result = validate_cv(doc, allow_todos=allow_todos, allow_aspirational=allow_aspirational)
     _print_validation(result)
 
     if not result.ok or (strict and result.warnings):
@@ -202,6 +221,7 @@ def render(
         accent=norm_accent,
         verify=verify,
         strict=strict,
+        allow_aspirational=allow_aspirational,
     )
 
 
@@ -375,6 +395,137 @@ def from_url(
             paper=norm_paper,
             accent=norm_accent,
             verify=verify,
+        )
+
+
+@app.command()
+def tailor(
+    job: Path = typer.Argument(..., exists=True, readable=True, help="Job description text file."),
+    base: Path = typer.Option(..., "--base", exists=True, readable=True, help="Master cv-md file."),
+    output: Optional[Path] = typer.Option(
+        None,
+        "-o",
+        "--output",
+        help="Output tailored .md path (required for --mode strict).",
+    ),
+    mode: str = typer.Option(
+        "strict",
+        "--mode",
+        help="strict: deterministic reorder/trim; dreamer: coverage report or --prepare bundle.",
+    ),
+    target_title: Optional[str] = typer.Option(
+        None,
+        "--target-title",
+        help="Override frontmatter headline for the target role (strict mode).",
+    ),
+    pages: int = typer.Option(2, "--pages", min=1, max=2, help="Soft page budget (1 or 2)."),
+    prepare: Optional[Path] = typer.Option(
+        None,
+        "--prepare",
+        help="Write dreamer LLM bundle (jd.txt, base.md, prompt.md) to this directory.",
+    ),
+    pdf: bool = typer.Option(False, "--pdf", help="Render tailored output to PDF (strict with -o)."),
+    paper: str = typer.Option("a4", "--paper", help="Paper size when --pdf is set."),
+    accent: Optional[str] = typer.Option(None, "--accent", help="Hex accent when --pdf is set."),
+    verify: bool = typer.Option(False, "--verify", help="Verify PDF when --pdf is set."),
+    allow_aspirational: bool = typer.Option(
+        False,
+        "--allow-aspirational",
+        help="Pass through to validate/render for dreamer artifacts.",
+    ),
+) -> None:
+    """Tailor a master cv-md CV against a job description (strict deterministic or dreamer prep)."""
+    mode_norm = mode.strip().lower()
+    if mode_norm not in ("strict", "dreamer"):
+        typer.secho("ERROR: --mode must be 'strict' or 'dreamer'.", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    jd_text = job.read_text(encoding="utf-8")
+    doc = _load_cv_or_exit(base)
+    target = target_title or job.stem.replace("_", " ").replace("-", " ")
+
+    if mode_norm == "dreamer":
+        if pdf:
+            typer.secho(
+                "ERROR: --pdf is not supported with --mode dreamer. "
+                "Generate a dreamer CV first (using --prepare or skills/cv-tailor), "
+                "then run 'cvfmt render <file.md> --allow-aspirational'.",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        if output is not None:
+            typer.secho(
+                "ERROR: --mode dreamer does not write tailored Markdown without an LLM. "
+                "Use --prepare DIR or skills/cv-tailor.",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        typer.echo(coverage_report(doc, jd_text))
+        if prepare is not None:
+            write_prepare_bundle(doc, jd_text, prepare, tailor_target=target)
+            typer.secho(f"Prepared dreamer bundle: {prepare}", fg=typer.colors.GREEN)
+        return
+
+    if output is None:
+        typer.secho("ERROR: --mode strict requires -o/--output for the tailored .md path.", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    suffix = output.suffix.lower()
+    if pdf:
+        if suffix not in (".md", ".pdf"):
+            typer.secho(
+                f"ERROR: -o/--output must be a .md or .pdf path when --pdf is set (got {output}).",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        norm_paper, norm_accent = _validate_render_options(paper, accent)
+        pdf_out = output if suffix == ".pdf" else output.with_suffix(".pdf")
+        md_out = pdf_out.with_suffix(".md")
+    else:
+        if suffix != ".md":
+            typer.secho(
+                f"ERROR: -o/--output must be a .md path when --pdf is not set (got {output}). "
+                "Pass --pdf to also render a PDF.",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
+        norm_paper, norm_accent = None, None
+        md_out = output
+        pdf_out = None
+
+    tailored, advisories = tailor_strict(
+        doc,
+        jd_text,
+        tailor_target=target,
+        target_title=target_title,
+        pages=pages,
+    )
+    for note in advisories:
+        typer.secho(f"NOTE: {note}", fg=typer.colors.YELLOW, err=True)
+
+    md_text = document_to_markdown(tailored)
+    md_out.parent.mkdir(parents=True, exist_ok=True)
+    md_out.write_text(md_text, encoding="utf-8")
+    typer.secho(f"Tailored (strict) -> {md_out}", fg=typer.colors.GREEN)
+
+    parsed = parse_cv_text(md_text, source_path=str(md_out))
+    val = validate_cv(parsed, allow_aspirational=allow_aspirational)
+    _print_validation(val)
+    if not val.ok:
+        raise typer.Exit(code=1)
+
+    if pdf and pdf_out is not None:
+        _compile_and_verify(
+            parsed,
+            pdf_out,
+            paper=norm_paper,
+            accent=norm_accent,
+            verify=verify,
+            allow_aspirational=allow_aspirational,
         )
 
 

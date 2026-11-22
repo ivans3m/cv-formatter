@@ -1,6 +1,6 @@
 # Specification: Markdown-to-PDF Local CLI (`cvfmt`)
 
-**Status:** Implemented v1.0 (shipped in package version `0.1.0`)  
+**Status:** Implemented v1.1 (shipped in package version `0.2.0`)  
 **Stack:** Python 3.11+ + bundled `typst` compiler (`typst` PyPI wheel)  
 **Default Typography:** IBM Plex Sans (open-source, bundled with the CLI package)  
 **Default Page Size:** A4 (`210 × 297 mm`), optional US Letter (`letter`)  
@@ -26,14 +26,18 @@
 
 Command name: `cvfmt` (console script from `pyproject.toml`; invocable after `pip install -e .` or via `python -m cvfmt.cli`).
 
-### Commands (v0.1.0)
+### Commands (v0.2.0)
 
 ```bash
 # Validate a cv-md/1.0 file (schema + ATS/LLM lint checks)
-cvfmt validate cv.md [--allow-todos] [--strict]
+cvfmt validate cv.md [--allow-todos] [--allow-aspirational] [--strict]
 
 # Render cv.md to PDF (validates before compile)
-cvfmt render cv.md [-o output.pdf] [--paper a4|letter] [--accent #RRGGBB] [--allow-todos] [--strict] [--verify]
+cvfmt render cv.md [-o output.pdf] [--paper a4|letter] [--accent #RRGGBB] [--allow-todos] [--allow-aspirational] [--strict] [--verify]
+
+# Tailor master CV to job description (strict deterministic or dreamer prep)
+cvfmt tailor job.txt --base cv-master.md -o cv-target.md --mode strict [--target-title "Role"] [--pdf] [--verify]
+cvfmt tailor job.txt --base cv-master.md --mode dreamer --prepare ./bundle/
 
 # Scaffold a starter EU cv-md/1.0 file
 cvfmt init [path] [--force]
@@ -54,6 +58,7 @@ cvfmt version
 | Flag | Description |
 | :--- | :--- |
 | `--allow-todos` | Permit `[TODO: ...]` placeholders without hard errors. |
+| `--allow-aspirational` | Allow `**(Aspirational)**` dreamer bullets (warnings only). |
 | `--strict` | Treat lint warnings as errors (exit `1`). |
 
 ### `render`
@@ -64,8 +69,22 @@ cvfmt version
 | `--paper a4\|letter` | Overrides YAML `paper` frontmatter. |
 | `--accent #RRGGBB` | Warm Editorial accent (default `#71717A`; 6-digit hex with or without `#`; also settable via frontmatter `accent`). |
 | `--allow-todos` | Allow rendering with `[TODO: ...]` markers. |
+| `--allow-aspirational` | Include `**(Aspirational)**` bullets in PDF (gap-analysis only; default off). |
 | `--strict` | Treat warnings as errors before compile. |
 | `--verify` | After PDF generation, run text-layer round-trip check (`pypdf` / `pdfplumber`). |
+
+### `tailor`
+
+| Flag | Description |
+| :--- | :--- |
+| `JOB` | Job description plain-text or Markdown file. |
+| `--base` | Master `cv-md` input (required). |
+| `-o` | Output tailored `.md` (required for `--mode strict`). |
+| `--mode strict\|dreamer` | Strict pipeline or dreamer coverage/prepare. |
+| `--target-title` | Override `headline` (strict). |
+| `--pages` | Soft budget `1` or `2` (strict). |
+| `--prepare DIR` | Write dreamer LLM bundle (`jd.txt`, `base.md`, `prompt.md`). |
+| `--pdf` / `--verify` | Render tailored output after strict mode. |
 
 ### `init`
 

@@ -40,11 +40,15 @@ def compile_pdf(
     *,
     paper_override: str | None = None,
     accent_override: str | None = None,
+    include_aspirational: bool = False,
     pdf_ua: bool = True,
 ) -> Path:
     """Compile a CVDocument into a minimalist, tagged PDF using bundled IBM Plex Sans."""
     typst_source = generate_typst(
-        doc, paper_override=paper_override, accent_override=accent_override
+        doc,
+        paper_override=paper_override,
+        accent_override=accent_override,
+        include_aspirational=include_aspirational,
     )
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -66,11 +70,15 @@ def compile_pngs(
     stem: str = "page",
     paper_override: str | None = None,
     accent_override: str | None = None,
+    include_aspirational: bool = False,
     ppi: float = 144.0,
 ) -> list[Path]:
     """Render a CVDocument to PNG pages for visual review."""
     typst_source = generate_typst(
-        doc, paper_override=paper_override, accent_override=accent_override
+        doc,
+        paper_override=paper_override,
+        accent_override=accent_override,
+        include_aspirational=include_aspirational,
     )
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

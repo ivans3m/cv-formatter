@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
-from cvfmt.models import CVDocument, Entry, Section, SubRole
+from cvfmt.models import CVDocument, Entry, Section, SubRole, is_aspirational_bullet
 
 
 DEFAULT_ACCENT = "#71717A"  # Refined light-medium neutral grey (Zinc 500)
@@ -79,7 +79,19 @@ def md_inline_to_typst(text: str) -> str:
     return "".join(out)
 
 
-def _render_bullets(bullets: list[str], *, compact: bool = False) -> list[str]:
+def _pdf_bullets(bullets: list[str], *, include_aspirational: bool) -> list[str]:
+    if include_aspirational:
+        return bullets
+    return [b for b in bullets if not is_aspirational_bullet(b)]
+
+
+def _render_bullets(
+    bullets: list[str],
+    *,
+    compact: bool = False,
+    include_aspirational: bool = False,
+) -> list[str]:
+    bullets = _pdf_bullets(bullets, include_aspirational=include_aspirational)
     if not bullets:
         return []
     # Inter-bullet spacing must always be larger than intra-bullet par(leading: 0.56em ≈ 5.2pt)
@@ -93,7 +105,7 @@ def _render_bullets(bullets: list[str], *, compact: bool = False) -> list[str]:
     return lines
 
 
-def _render_subrole(sr: SubRole) -> list[str]:
+def _render_subrole(sr: SubRole, *, include_aspirational: bool = False) -> list[str]:
     lines: list[str] = []
     left = f'#text(size: 9.4pt, weight: "medium", fill: rgb("#18181B"))[{md_inline_to_typst(sr.title)}]'
     right = (
@@ -111,11 +123,11 @@ def _render_subrole(sr: SubRole) -> list[str]:
         lines.append(f"  {left}")
     lines.append("]")
     if sr.bullets:
-        lines.extend(_render_bullets(sr.bullets))
+        lines.extend(_render_bullets(sr.bullets, include_aspirational=include_aspirational))
     return lines
 
 
-def _render_entry(entry: Entry) -> list[str]:
+def _render_entry(entry: Entry, *, include_aspirational: bool = False) -> list[str]:
     lines: list[str] = []
 
     if entry.secondary:
@@ -150,15 +162,15 @@ def _render_entry(entry: Entry) -> list[str]:
     lines.append("]")
 
     if entry.bullets:
-        lines.extend(_render_bullets(entry.bullets))
+        lines.extend(_render_bullets(entry.bullets, include_aspirational=include_aspirational))
 
     for sr in entry.sub_roles:
-        lines.extend(_render_subrole(sr))
+        lines.extend(_render_subrole(sr, include_aspirational=include_aspirational))
 
     return lines
 
 
-def _render_section(section: Section, *, accent: str) -> list[str]:
+def _render_section(section: Section, *, accent: str, include_aspirational: bool = False) -> list[str]:
     lines: list[str] = []
     compact_bullets = section.title.lower() in ("skills", "languages", "certifications", "publications")
     keep_together = (
@@ -173,7 +185,12 @@ def _render_section(section: Section, *, accent: str) -> list[str]:
         if section.title:
             lines.append(f"  == {escape_typst(section.title)}")
         lines.append("  #v(2pt)")
-        lines.extend("  " + ln for ln in _render_bullets(section.bullets, compact=True))
+        lines.extend(
+            "  " + ln
+            for ln in _render_bullets(
+                section.bullets, compact=True, include_aspirational=include_aspirational
+            )
+        )
         lines.append("]")
         return lines
 
@@ -193,10 +210,16 @@ def _render_section(section: Section, *, accent: str) -> list[str]:
 
     if section.bullets:
         lines.append("#v(2pt)")
-        lines.extend(_render_bullets(section.bullets, compact=compact_bullets))
+        lines.extend(
+            _render_bullets(
+                section.bullets,
+                compact=compact_bullets,
+                include_aspirational=include_aspirational,
+            )
+        )
 
     for entry in section.entries:
-        lines.extend(_render_entry(entry))
+        lines.extend(_render_entry(entry, include_aspirational=include_aspirational))
 
     return lines
 
@@ -206,6 +229,7 @@ def generate_typst(
     *,
     paper_override: str | None = None,
     accent_override: str | None = None,
+    include_aspirational: bool = False,
 ) -> str:
     """Generate a self-contained Warm Editorial Typst document from a CVDocument."""
     fm = doc.frontmatter
@@ -274,7 +298,9 @@ def generate_typst(
 
     for section in doc.renderable_sections:
         lines.append("")
-        lines.extend(_render_section(section, accent=accent))
+        lines.extend(
+            _render_section(section, accent=accent, include_aspirational=include_aspirational)
+        )
 
     lines.append("")
     return "\n".join(lines)

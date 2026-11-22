@@ -6,7 +6,7 @@ A standardized, human- and LLM-readable Markdown CV format (`cv-md/1.1`, backwar
 
 ## Project Status
 
-**v0.1.0 implemented and verified** — Open-standard skill ([`skills/cv-formatter/`](skills/cv-formatter/)), Python + Typst + IBM Plex Sans CLI (`cvfmt`), LinkedIn and public-URL importers, and a local pytest suite (22 tests) with PDF text-layer round-trips are working.
+**v0.2.0** — Open-standard skills ([`skills/cv-formatter/`](skills/cv-formatter/), [`skills/cv-tailor/`](skills/cv-tailor/)), Python + Typst CLI (`cvfmt`), `cvfmt tailor` for strict/dreamer workflows, importers, and local pytest with PDF round-trips.
 
 ## Quickstart (`cvfmt` CLI)
 
@@ -35,6 +35,10 @@ python3 -m venv .venv
 
 # Import a public CV webpage, JSON Resume URL, or raw cv-md/1.0 URL directly to cv-md/1.0 + PDF
 .venv/bin/cvfmt from-url https://ivan.diuldia.com/cv/ --pdf -o cv.pdf --verify
+
+# Tailor cv-master.md to a job description (deterministic strict mode; dreamer uses Agent Skill or --prepare)
+.venv/bin/cvfmt tailor job.txt --base cv-master.md -o cv-acme.md --mode strict --target-title "Senior Backend Engineer"
+.venv/bin/cvfmt tailor job.txt --base cv-master.md --mode dreamer --prepare ./tailor-bundle/
 ```
 
 ### Tests

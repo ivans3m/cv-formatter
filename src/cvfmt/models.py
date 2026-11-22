@@ -33,6 +33,15 @@ class LinkItem(BaseModel):
     url: str
 
 
+ASPIRATIONAL_PREFIX = "**(Aspirational)** "
+_ASPIRATIONAL_MARKER_LOWER = ASPIRATIONAL_PREFIX.strip().lower()
+
+
+def is_aspirational_bullet(text: str) -> bool:
+    """True when a renderable bullet is marked as dreamer/aspirational content."""
+    return text.strip().lower().startswith(_ASPIRATIONAL_MARKER_LOWER)
+
+
 class Frontmatter(BaseModel):
     schema_version: str = Field(default="", alias="schema")
     name: str = ""
@@ -45,6 +54,8 @@ class Frontmatter(BaseModel):
     paper: str = "a4"
     lang: str = "en"
     accent: str | None = None
+    tailor_mode: Literal["strict", "dreamer"] | None = None
+    tailor_target: str | None = None
 
     model_config = {"populate_by_name": True}
 

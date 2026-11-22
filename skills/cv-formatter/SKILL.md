@@ -30,6 +30,7 @@ Load only what you need for the current task:
 | "Convert/format/rewrite my CV", "silent mode", "just clean it up", or no interview requested | **Silent Mode** |
 | "Extended mode", "interview me", "ask follow-up questions", "help me strengthen my CV" | **Extended Mode** |
 | Ambiguous request on a thin/incomplete draft | Default to **Silent Mode**, deliver a clean `.md` immediately, and offer a 1-line option to run **Extended Mode** next. |
+| Master CV + job description, "tailor", "dreamer mode", target vacancy | **Tailoring** — use the dedicated [../cv-tailor/SKILL.md](../cv-tailor/SKILL.md) skill (strict or dreamer). |
 
 Supported file roles (same `cv-md/1.1` schema for all):
 - **Ready-to-send CV** (`cv.md`): Target 1 page (junior, 0–4 yrs) or 2 pages max (experienced, 5+ yrs).

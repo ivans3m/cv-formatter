@@ -1,0 +1,12 @@
+Senior Backend Engineer — Platform & Payments
+
+We are hiring a Senior Backend Engineer to build high-throughput payment APIs and event-driven microservices.
+
+Requirements:
+- 5+ years backend development in Go and/or Python
+- PostgreSQL, Redis, Kafka, Kubernetes on AWS or GCP
+- Experience with SEPA/instant payments, idempotency, and observability (OpenTelemetry)
+- Led reliability or performance initiatives (latency, incident reduction)
+- Mentoring engineers and writing RFCs/standards
+
+Nice to have: Terraform, GitHub Actions, fintech compliance (DORA), zero-downtime migrations.

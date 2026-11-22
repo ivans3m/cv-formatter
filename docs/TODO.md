@@ -42,23 +42,21 @@ Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewr
 - [x] **GitHub Actions CI** — Added `.github/workflows/ci.yml` running `pytest -v` and CLI smoke checks (`cvfmt version`, `validate`, `render --verify`) on `main` and PRs across Python 3.11–3.13.
 - [x] **Public contributor docs** — Added `CONTRIBUTING.md` and `.github/ISSUE_TEMPLATE/` (`bug_report.yml`, `feature_request.yml`, `config.yml`), linked from `README.md`.
 - [x] **Schema `cv-md/1.1` & non-exported `## Facts` section** — Added `## Facts` as an optional canonical Markdown-only memory bank (`Name — Description` bullets + optional `###` subheadings), omitted from PDF rendering and verified anti-leak in `cvfmt render --verify`, with backward-compatible `cv-md/1.0` support and updated skill instructions.
+- [x] **Tailoring skill, dreamer mode, and `cvfmt tailor` (v0.2.0)** — `skills/cv-tailor/`, aspirational validation/render guards, strict deterministic pipeline, dreamer coverage + `--prepare` bundle, writer round-trip, pytest + CI smoke.
 
 ---
 
 ## Up Next
 
-- *(All v0.1.0 Up Next items complete — pick the next milestone from Backlog below.)*
+- *(Pick the next milestone from Backlog below — e.g. web app or PDF polish.)*
 
 ---
 
 ## Backlog
 
-- [ ] **Role / Job Description tailoring skill**
-  - *Comment*: Add a dedicated skill (or sub-workflow) that takes an existing `cv-md/1.0` CV + a target role or Job Description and tweaks positioning, summary, bullet emphasis, and keyword alignment strictly truthfully for that specific vacancy.
-- [ ] **Dreamer mode (autonomous enhanced CV generation)**
-  - *Comment*: Autonomous mode for the CV generation/tailoring skill that imagines the strongest, most plausible answers to all Extended Mode follow-up questions to match a target role or Job Description—clearly marking imagined/aspirational additions vs. verified facts so the candidate can review, edit, or use it as a benchmark/gap analysis.
-- [ ] **CLI `--base` flag for tailoring (`strict` or `dreamer` mode)**
-  - *Comment*: Add `--base <base.md>` (plus mode flag `--mode strict|dreamer`) to `cvfmt` to use an existing `cv-md/1.0` file (such as `cv-master.md`) as the base input for generating a role-tailored `.md` / `.pdf`.
+- [x] **Role / Job Description tailoring skill** — `skills/cv-tailor/` with strict playbook, dreamer playbook, and golden example; cross-linked from `skills/cv-formatter`.
+- [x] **Dreamer mode (autonomous enhanced CV generation)** — Skill contract + `**(Aspirational)**` markers, validator/render guards, `cvfmt tailor --mode dreamer --prepare`.
+- [x] **CLI `cvfmt tailor`** — `--base`, `--mode strict|dreamer`, `-o`, `--prepare`, optional `--pdf`; deterministic strict pipeline in `src/cvfmt/tailor/`.
 - [ ] **Big Update: Simple Web App (CV → `cv-md/1.0` & PDF)**
   - *Comment*: Lightweight web app where users upload or paste a CV (or URL), parse/rewrite it using deterministic algorithmic parsing or free-tier AI model APIs (e.g., NVIDIA NIM / Groq), and download a clean `cv-md/1.0` Markdown file and/or rendered Warm Editorial PDF.
 - [ ] **Direct LinkedIn profile URL import (without manual export)**

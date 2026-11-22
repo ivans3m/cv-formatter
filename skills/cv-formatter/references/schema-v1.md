@@ -115,3 +115,11 @@ Use only these canonical top-level headings (in this recommended order; junior C
 - **Project: Retail Checkout Redesign** — Created new checkout flow for a retail client; gained +2% conversion lift.
 - **Skill: Origami** — Advanced modular paper folding (personal interest; keep off PDF).
 ```
+
+## Tailoring metadata (optional)
+
+- `tailor_mode: strict` — verified-only tailored CV (default when tailoring for applications).
+- `tailor_mode: dreamer` — allows `**(Aspirational)**` bullets in renderable sections (gap-analysis drafts).
+- `tailor_target: "<Role or vacancy label>"` — used when archiving trimmed bullets under `## Facts`.
+
+See also `skills/cv-tailor/` and `cvfmt tailor`.

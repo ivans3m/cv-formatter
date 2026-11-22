@@ -12,6 +12,7 @@ from cvfmt.models import (
     SUPPORTED_SCHEMAS,
     ValidationIssue,
     ValidationResult,
+    is_aspirational_bullet,
 )
 
 
@@ -77,7 +78,29 @@ def _experience_and_projects_text(doc: CVDocument) -> str:
     return "\n".join(chunks).lower()
 
 
-def validate_cv(doc: CVDocument, *, allow_todos: bool = False) -> ValidationResult:
+def _iter_renderable_bullets(doc: CVDocument) -> list[tuple[int, str]]:
+    """Yield (approx line, bullet text) for bullets in PDF-exported sections."""
+    out: list[tuple[int, str]] = []
+    for section in doc.sections:
+        if section.title.lower() in NON_RENDERED_SECTIONS:
+            continue
+        for bullet in section.bullets:
+            out.append((section.line, bullet))
+        for entry in section.entries:
+            for bullet in entry.bullets:
+                out.append((entry.line, bullet))
+            for sr in entry.sub_roles:
+                for bullet in sr.bullets:
+                    out.append((sr.line, bullet))
+    return out
+
+
+def validate_cv(
+    doc: CVDocument,
+    *,
+    allow_todos: bool = False,
+    allow_aspirational: bool = False,
+) -> ValidationResult:
     """Validate a parsed CVDocument against cv-md/1.1 (and cv-md/1.0) rules."""
     result = ValidationResult()
     fm = doc.frontmatter
@@ -248,7 +271,38 @@ def validate_cv(doc: CVDocument, *, allow_todos: bool = False) -> ValidationResu
             )
         )
 
-    # 5. LLM evidence check: skills grounded in Experience/Projects
+    # 5. Aspirational / dreamer tailoring markers
+    dreamer_doc = (fm.tailor_mode or "").lower() == "dreamer"
+    for line_no, bullet in _iter_renderable_bullets(doc):
+        if not is_aspirational_bullet(bullet):
+            continue
+        if dreamer_doc:
+            if not allow_aspirational:
+                result.issues.append(
+                    ValidationIssue(
+                        severity="warning",
+                        code="ASPIRATIONAL_BULLET",
+                        message=(
+                            "Renderable bullet is marked aspirational; review before submitting. "
+                            "Use cvfmt render --allow-aspirational only for internal gap-analysis PDFs."
+                        ),
+                        line=line_no,
+                    )
+                )
+        else:
+            result.issues.append(
+                ValidationIssue(
+                    severity="error",
+                    code="ASPIRATIONAL_IN_STRICT",
+                    message=(
+                        "Aspirational bullet in a strict CV. Set frontmatter tailor_mode: dreamer "
+                        "or remove the **(Aspirational)** prefix."
+                    ),
+                    line=line_no,
+                )
+            )
+
+    # 6. LLM evidence check: skills grounded in Experience/Projects
     skills = _extract_skill_items(doc)
     if skills:
         evidence_text = _experience_and_projects_text(doc)

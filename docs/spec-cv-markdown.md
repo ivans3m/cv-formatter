@@ -61,6 +61,8 @@ paper: a4
 | `links` | list | No | Ordered list of `{ label, url }` objects (`https://` URLs). Recommended max 4 links. |
 | `paper` | enum | No | `a4` (default) or `letter`. |
 | `lang` | string | No | BCP-47 language tag (default `en`; e.g., `de`, `nl`, `fr`) used for PDF document language metadata (`PDF/UA`). |
+| `tailor_mode` | enum | No | `strict` (verified-only tailoring) or `dreamer` (aspirational bullets allowed with markers). |
+| `tailor_target` | string | No | Human-readable label for the vacancy or slug (e.g., `Senior Backend @ Acme`). |
 
 ### Intentionally Omitted Fields (GDPR Hygiene)
 The default schema does **not** include `date_of_birth`, `age`, `marital_status`, `nationality`, `id_number`, `street_address`, or `photo`.
@@ -180,6 +182,12 @@ Valid CEFR tokens: `A1`, `A2`, `B1`, `B2`, `C1`, `C2`, `Native`.
 - **Validation behavior**: `[TODO: ...]` markers and non-date `###` subheadings inside `## Facts` do **not** fail `cvfmt validate` or block PDF rendering. Skills mentioned only in `## Facts` do **not** count as public evidence for `## Skills` (since recruiters and ATS parsers never see `## Facts`).
 - **Privacy note**: Because `## Facts` may hold private context (notice period, target compensation, candid notes), avoid publishing the raw `.md` file publicly without reviewing `## Facts` first.
 
+### 5.9 Role tailoring & dreamer markers
+
+- **Strict tailored CVs** (`tailor_mode: strict` or absent): renderable bullets must be verifiable; no `**(Aspirational)**` prefix.
+- **Dreamer CVs** (`tailor_mode: dreamer`): imagined or inferred claims in renderable sections **must** start with `**(Aspirational)** `. Validation emits `ASPIRATIONAL_BULLET` warnings; `cvfmt render` omits aspirational bullets unless `--allow-aspirational`.
+- **CLI strict tailor**: `cvfmt tailor JOB.txt --base cv-master.md -o cv-target.md --mode strict` performs deterministic reorder/trim without LLM summary rewrites.
+
 ```markdown
 ## Facts
 
@@ -206,6 +214,8 @@ Valid CEFR tokens: `A1`, `A2`, `B1`, `B2`, `C1`, `C2`, `Native`.
 | **Warning** | `## Skills` item not referenced anywhere in `## Experience` or `## Projects` | Warn about LLM rubric evidence gap |
 | **Warning** | Missing `## Languages` section | Soft EU market reminder |
 | **Warning** | Rendered PDF exceeds 2 pages (or overflows <5 lines onto an extra page) | Warn after compilation |
+| **Error** | `**(Aspirational)**` in renderable sections without `tailor_mode: dreamer` | Fail validation (`ASPIRATIONAL_IN_STRICT`) |
+| **Warning** | Aspirational bullet when `tailor_mode: dreamer` | Warn (`ASPIRATIONAL_BULLET`) |
 
 ---
 
