@@ -1,10 +1,10 @@
-# Reference: Canonical Markdown CV Schema (`cv-md/1.0`)
+# Reference: Canonical Markdown CV Schema (`cv-md/1.1`)
 
 ## Frontmatter (YAML, UTF-8, LF)
 
 ```yaml
 ---
-schema: cv-md/1.0
+schema: cv-md/1.1
 name: Full Name
 headline: Target Role or Title
 location: City, Country
@@ -21,7 +21,7 @@ lang: en  # BCP-47 language tag (default: en)
 ---
 ```
 
-- **Required**: `schema` (`cv-md/1.0`), `name`, `email`.
+- **Required**: `schema` (`cv-md/1.1`; `cv-md/1.0` remains accepted for backward compatibility), `name`, `email`.
 - **Omit by default (GDPR)**: `date_of_birth`, `age`, `marital_status`, `nationality`, `street_address`, `photo`.
 
 ## Canonical `##` Sections
@@ -36,6 +36,7 @@ Use only these canonical top-level headings (in this recommended order; junior C
 6. `## Languages` — CEFR levels (`A1`, `A2`, `B1`, `B2`, `C1`, `C2`, `Native`).
 7. `## Certifications` — Compact bullets.
 8. `## Publications` — Compact bullets with optional links.
+9. `## Facts` *(optional, Markdown-only — **never exported to PDF**)* — Candidate memory bank storing omitted roles/projects, extra metrics, skills, and interview context for future tailoring.
 
 ## Entry Patterns
 
@@ -97,3 +98,20 @@ Use only these canonical top-level headings (in this recommended order; junior C
 ## Date Rules
 - Use `YYYY-MM`, `YYYY`, or `Present`.
 - Separate ranges with spaced en-dash: `2023-04 – Present`.
+
+## `## Facts` (Markdown-Only Memory Bank)
+
+- Stored in `.md` files only; `cvfmt render` completely omits `## Facts` from PDF output.
+- Use categorized **Name — Description** bullets (`- **<Type: Name>** — <Description>`) and optional `###` subheadings (e.g., `### Target Roles & Preferences`, `### Extra Metrics & Context`, `### Archived Roles & Projects`).
+- Always carry `## Facts` into tailored `.md` files and park any trimmed/hidden items here so nothing is ever lost.
+
+```markdown
+## Facts
+
+### Target Roles & Preferences
+- **Preference: Notice Period** — 1 month; open to remote EU or hybrid Amsterdam.
+
+### Archived Projects & Skills
+- **Project: Retail Checkout Redesign** — Created new checkout flow for a retail client; gained +2% conversion lift.
+- **Skill: Origami** — Advanced modular paper folding (personal interest; keep off PDF).
+```

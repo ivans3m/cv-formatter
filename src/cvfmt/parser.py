@@ -92,7 +92,9 @@ def parse_cv_text(text: str, source_path: str | None = None) -> CVDocument:
         m_h2 = _H2_RE.match(stripped)
         if m_h2:
             flush_paragraph()
-            current_section = Section(title=m_h2.group(1).strip(), line=line_no)
+            if current_section is not None:
+                current_section.end_line = line_no - 1
+            current_section = Section(title=m_h2.group(1).strip(), line=line_no, end_line=line_no)
             sections.append(current_section)
             current_entry = None
             current_subrole = None
@@ -177,6 +179,10 @@ def parse_cv_text(text: str, source_path: str | None = None) -> CVDocument:
         paragraph_buf.append(stripped)
 
     flush_paragraph()
+
+    last_body_line = body_start_line + max(len(body.splitlines()) - 1, 0)
+    if current_section is not None:
+        current_section.end_line = max(current_section.line, last_body_line)
 
     return CVDocument(
         frontmatter=frontmatter,

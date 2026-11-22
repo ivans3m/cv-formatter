@@ -22,12 +22,12 @@ from cvfmt.verifier import verify_pdf
 
 app = typer.Typer(
     name="cvfmt",
-    help="Validate and render cv-md/1.0 Markdown CVs into clean, minimalist, ATS- and LLM-readable PDFs.",
+    help="Validate and render cv-md/1.1 (and cv-md/1.0) Markdown CVs into clean, minimalist, ATS- and LLM-readable PDFs.",
     no_args_is_help=True,
 )
 
 STARTER_TEMPLATE = """---
-schema: cv-md/1.0
+schema: cv-md/1.1
 name: Your Name
 headline: Target Role Title
 location: Amsterdam, Netherlands
@@ -68,6 +68,11 @@ Concise 2–3 line summary highlighting years of experience, core domain, and pr
 ## Languages
 
 - **English:** C2 (Proficient / Working Language)
+
+## Facts
+
+- **Preference: Notice Period** — 1 month; open to remote EU or hybrid roles.
+- **Project: Example Side Project** — Stored here for future CV tailoring; never exported to PDF.
 """
 
 
@@ -161,7 +166,7 @@ def validate(
         raise typer.Exit(code=1)
 
     typer.secho(
-        f"OK: {path} is valid cv-md/1.0 ({len(result.warnings)} warning(s)).",
+        f"OK: {path} is valid {doc.frontmatter.schema_version} ({len(result.warnings)} warning(s)).",
         fg=typer.colors.GREEN,
     )
 

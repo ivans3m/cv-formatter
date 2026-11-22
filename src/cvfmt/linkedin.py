@@ -112,10 +112,10 @@ def _build_cv_markdown(
     certifications: list[dict] | None = None,
     paper: str = "a4",
 ) -> str:
-    """Assemble a clean, valid cv-md/1.0 Markdown string from normalized LinkedIn fields."""
+    """Assemble a clean, valid cv-md/1.1 Markdown string from normalized LinkedIn fields."""
     lines: list[str] = [
         "---",
-        "schema: cv-md/1.0",
+        "schema: cv-md/1.1",
         f"name: {_yaml_quote(name or '[TODO: add full name]')}",
     ]
     if headline:

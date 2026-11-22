@@ -9,7 +9,7 @@ from pathlib import Path
 import pdfplumber
 from pypdf import PdfReader
 
-from cvfmt.models import CVDocument
+from cvfmt.models import CVDocument, NON_RENDERED_SECTIONS
 
 
 @dataclass
@@ -97,10 +97,14 @@ def verify_pdf(doc: CVDocument, pdf_path: str | Path) -> VerificationReport:
         if url not in uris:
             report.errors.append(f"Expected clickable PDF link annotation missing: {url}")
 
-    # 3. Reading order fidelity: section titles & entry headings must appear in exact order
+    # 3. Reading order fidelity: renderable section titles & entry headings must appear in exact order
     cursor = 0
-    for section in doc.sections:
+    renderable_chunks: list[str] = [
+        v for v in (fm.name, fm.headline, fm.location, fm.work_authorization) if v
+    ]
+    for section in doc.renderable_sections:
         if section.title:
+            renderable_chunks.append(section.title)
             idx = norm_plumber.find(section.title, cursor)
             if idx == -1:
                 report.errors.append(
@@ -108,8 +112,18 @@ def verify_pdf(doc: CVDocument, pdf_path: str | Path) -> VerificationReport:
                 )
             else:
                 cursor = idx + len(section.title)
+        renderable_chunks.extend(_strip_md_inline(p) for p in section.paragraphs)
+        renderable_chunks.extend(_strip_md_inline(b) for b in section.bullets)
         for entry in section.entries:
             plain_primary = _strip_md_inline(entry.primary)
+            renderable_chunks.append(_strip_md_inline(entry.heading))
+            if entry.location:
+                renderable_chunks.append(_strip_md_inline(entry.location))
+            renderable_chunks.extend(_strip_md_inline(p) for p in entry.paragraphs)
+            renderable_chunks.extend(_strip_md_inline(b) for b in entry.bullets)
+            for sr in entry.sub_roles:
+                renderable_chunks.append(_strip_md_inline(sr.title))
+                renderable_chunks.extend(_strip_md_inline(b) for b in sr.bullets)
             idx = norm_plumber.find(plain_primary, cursor)
             if idx == -1:
                 report.errors.append(
@@ -118,8 +132,11 @@ def verify_pdf(doc: CVDocument, pdf_path: str | Path) -> VerificationReport:
             else:
                 cursor = idx + len(plain_primary)
 
-    # 4. Unicode diacritics & ligature-prone words fidelity across BOTH extractors
-    source_words = set(re.findall(r"\b\w*(?:fi|fl|[^\x00-\x7F])\w*\b", f"{fm.name}\n{doc.raw_body}"))
+    renderable_text = "\n".join(renderable_chunks)
+    norm_renderable = _normalize_ws(renderable_text)
+
+    # 4. Unicode diacritics & ligature-prone words fidelity across BOTH extractors (renderable text only)
+    source_words = set(re.findall(r"\b\w*(?:fi|fl|[^\x00-\x7F])\w*\b", renderable_text))
     for word in sorted(source_words):
         if len(word) < 2:
             continue
@@ -128,7 +145,29 @@ def verify_pdf(doc: CVDocument, pdf_path: str | Path) -> VerificationReport:
         if word not in norm_pypdf:
             report.errors.append(f"Unicode/ligature word {word!r} corrupted in pypdf text layer.")
 
-    # 5. Page count sanity
+    # 5. Anti-leak check: non-exported sections (e.g. '## Facts') must never appear in the rendered PDF
+    non_rendered_sections = [
+        s for s in doc.sections if s.title.lower() in NON_RENDERED_SECTIONS
+    ]
+    for hidden_sec in non_rendered_sections:
+        fact_items: list[str] = []
+        fact_items.extend(hidden_sec.paragraphs)
+        fact_items.extend(hidden_sec.bullets)
+        for entry in hidden_sec.entries:
+            fact_items.append(entry.heading)
+            fact_items.extend(entry.paragraphs)
+            fact_items.extend(entry.bullets)
+            for sr in entry.sub_roles:
+                fact_items.append(sr.title)
+                fact_items.extend(sr.bullets)
+        for raw_item in fact_items:
+            plain_item = _normalize_ws(_strip_md_inline(raw_item))
+            if len(plain_item) >= 8 and plain_item not in norm_renderable and plain_item in norm_plumber:
+                report.errors.append(
+                    f"Non-exported '## {hidden_sec.title}' content leaked into PDF text layer: {plain_item[:60]!r}."
+                )
+
+    # 6. Page count sanity
     if page_count > 2:
         report.warnings.append(
             f"Rendered PDF is {page_count} pages (EU best practice is 1–2 pages max)."

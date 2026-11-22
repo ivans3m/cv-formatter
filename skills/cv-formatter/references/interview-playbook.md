@@ -6,8 +6,9 @@ Use this protocol **only in Extended Mode**. Goal: uncover missing evidence, met
 
 - **Never dump 15+ questions at once.** Batch into focused, numbered questions.
 - **Skip what is already answered** in the source CV or prompt.
-- **Respect stop cues**: If the user says "skip", "that's enough", or "write it now", immediately generate the `cv-md/1.0` file using verified facts.
+- **Respect stop cues**: If the user says "skip", "that's enough", or "write it now", immediately generate the `cv-md/1.1` file using verified facts.
 - **Offer concrete examples** inside questions so the user can answer in 1–2 short lines.
+- **Never discard answers**: Save every useful detail the user shares that doesn't make the 1–2 page PDF cut into `## Facts` (`- **<Type: Name>** — <Description>`), and move any pruned/trimmed items into `## Facts` instead of deleting them.
 
 ---
 
@@ -30,4 +31,4 @@ Inspect the candidate's **most recent 2–3 roles** for vague duty bullets, miss
 ## Round 3: Pruning & Positioning (Optional — Skip if Not Needed)
 
 Only run Round 3 if the CV risks exceeding 2 pages or has competing career angles:
-- Propose specific trims (e.g., condensing roles >10 years old to 1 line, dropping outdated tools or early coursework) and ask for a quick thumbs-up before writing the final `cv-md/1.0` file.
+- Propose specific trims (e.g., condensing roles >10 years old to 1 line, moving secondary projects or tools to `## Facts`) and ask for a quick thumbs-up before writing the final `cv-md/1.1` file.

@@ -10,6 +10,7 @@ from html.parser import HTMLParser
 from urllib.parse import urlparse
 
 from cvfmt.linkedin import _build_cv_markdown
+from cvfmt.models import SUPPORTED_SCHEMAS
 
 
 MAX_RESPONSE_BYTES = 5 * 1024 * 1024  # 5 MB safety limit
@@ -421,8 +422,11 @@ def import_from_url(url: str, *, paper: str = "a4") -> str:
     body, ctype = fetch_url(url)
     stripped = body.lstrip()
 
-    # 1. Raw cv-md/1.0 Markdown
-    if stripped.startswith("---") and "schema: cv-md/1.0" in stripped[:400]:
+    # 1. Raw cv-md/1.x Markdown
+    schema_alt = "|".join(re.escape(s) for s in SUPPORTED_SCHEMAS)
+    if stripped.startswith("---") and re.search(
+        rf'schema:\s*["\']?(?:{schema_alt})["\']?(?:\s|$)', stripped[:400]
+    ):
         return body
 
     # 2. JSON Resume

@@ -8,6 +8,8 @@ from cvfmt.models import (
     CANONICAL_SECTIONS,
     CANONICAL_SECTIONS_LOWER,
     CVDocument,
+    NON_RENDERED_SECTIONS,
+    SUPPORTED_SCHEMAS,
     ValidationIssue,
     ValidationResult,
 )
@@ -76,17 +78,18 @@ def _experience_and_projects_text(doc: CVDocument) -> str:
 
 
 def validate_cv(doc: CVDocument, *, allow_todos: bool = False) -> ValidationResult:
-    """Validate a parsed CVDocument against cv-md/1.0 rules."""
+    """Validate a parsed CVDocument against cv-md/1.1 (and cv-md/1.0) rules."""
     result = ValidationResult()
     fm = doc.frontmatter
 
     # 1. Frontmatter hard errors
-    if fm.schema_version != "cv-md/1.0":
+    if fm.schema_version not in SUPPORTED_SCHEMAS:
+        supported = ", ".join(repr(s) for s in SUPPORTED_SCHEMAS)
         result.issues.append(
             ValidationIssue(
                 severity="error",
                 code="SCHEMA_VERSION",
-                message=f"Frontmatter 'schema' must be 'cv-md/1.0' (got {fm.schema_version!r}).",
+                message=f"Frontmatter 'schema' must be one of {supported} (got {fm.schema_version!r}).",
                 line=1,
             )
         )
@@ -132,7 +135,16 @@ def validate_cv(doc: CVDocument, *, allow_todos: bool = False) -> ValidationResu
             )
         )
 
-    # 2. Unresolved [TODO: ...] markers
+    # 2. Unresolved [TODO: ...] markers (skip non-rendered sections like ## Facts)
+    non_rendered_ranges = [
+        (s.line, s.end_line)
+        for s in doc.sections
+        if s.title.lower() in NON_RENDERED_SECTIONS and s.line > 0
+    ]
+
+    def _in_non_rendered(line_no: int) -> bool:
+        return any(start <= line_no <= end for start, end in non_rendered_ranges)
+
     if not allow_todos:
         fm_str = str(doc.raw_frontmatter)
         if _TODO_RE.search(fm_str):
@@ -145,6 +157,8 @@ def validate_cv(doc: CVDocument, *, allow_todos: bool = False) -> ValidationResu
                 )
             )
         for idx, line in enumerate(doc.raw_body.splitlines(), start=doc.body_start_line):
+            if _in_non_rendered(idx):
+                continue
             if _TODO_RE.search(line):
                 result.issues.append(
                     ValidationIssue(
@@ -179,6 +193,9 @@ def validate_cv(doc: CVDocument, *, allow_todos: bool = False) -> ValidationResu
                     line=section.line,
                 )
             )
+
+        if section.title.lower() in NON_RENDERED_SECTIONS:
+            continue
 
         for entry in section.entries:
             if entry.date_range and not _validate_date_range(entry.date_range):

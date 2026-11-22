@@ -11,8 +11,8 @@
 ## 1. Goals & Non-Goals
 
 ### Goals
-- Convert any valid `cv-md/1.0` Markdown file into a clean, modern, minimalist PDF in <1 second locally.
-- Guarantee **100% linear, ATS- and LLM-readable PDF text extraction** (exact reading order, zero ligature drops, full EU Unicode/diacritic fidelity, Tagged PDF / PDF/UA-1).
+- Convert any valid `cv-md/1.1` (or `cv-md/1.0`) Markdown file into a clean, modern, minimalist PDF in <1 second locally, while omitting non-exported sections (`## Facts`).
+- Guarantee **100% linear, ATS- and LLM-readable PDF text extraction** (exact reading order, zero ligature drops, full EU Unicode/diacritic fidelity, Tagged PDF / PDF/UA-1, and anti-leak verification for `## Facts`).
 - Zero manual system dependencies (no TeX Live, no Cairo/Pango, no Chromium download).
 
 ### Non-Goals (v1)

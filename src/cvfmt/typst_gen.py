@@ -272,7 +272,7 @@ def generate_typst(
             f'#block(above: 0pt, below: 4pt)[#text(size: 8.6pt, fill: rgb("#71717A"))[{contact_line}]]'
         )
 
-    for section in doc.sections:
+    for section in doc.renderable_sections:
         lines.append("")
         lines.extend(_render_section(section, accent=accent))
 

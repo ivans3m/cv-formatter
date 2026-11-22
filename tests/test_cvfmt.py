@@ -223,3 +223,94 @@ def test_cli_handles_malformed_yaml_cleanly(tmp_path: Path) -> None:
     res = runner.invoke(app, ["validate", str(bad)])
     assert res.exit_code == 1
     assert "ERROR: Could not parse" in res.output
+
+
+def test_facts_section_validated_and_excluded_from_pdf(tmp_path: Path) -> None:
+    md = """---
+schema: cv-md/1.1
+name: Elena Novak
+headline: Staff Product Engineer
+location: Amsterdam, Netherlands
+email: elena.novak@example.eu
+---
+
+## Summary
+
+Product engineer building resilient European fintech systems.
+
+## Experience
+
+### Staff Product Engineer — Northstar Pay
+*2022-03 – Present | Amsterdam, Netherlands*
+
+- Built high-throughput settlement APIs in Python and PostgreSQL.
+
+## Skills
+
+- **Core:** Python, PostgreSQL
+
+## Languages
+
+- **English:** C2
+
+## Facts
+
+- **Project: Retail Checkout Revamp** — Built prototype checkout flow for a retail client; gained +2% conversion lift.
+- **Skill: Origami** — Advanced modular paper folding (personal hobby, keep off PDF).
+- **Preference: Notice Period** — 1 month notice; open to remote EU roles.
+
+### Archived Notes
+- **Note: Future Follow-up** — [TODO: verify exact 2019 revenue figure] with Zürich finance office.
+"""
+    doc = parse_cv_text(md)
+    assert doc.facts_section is not None
+    assert all(s.title.lower() != "facts" for s in doc.renderable_sections)
+
+    # Validation passes with zero errors and zero warnings (even with [TODO] and non-date ### inside ## Facts)
+    val = validate_cv(doc, allow_todos=False)
+    assert val.ok, val.errors
+    assert not val.warnings, val.warnings
+
+    # Rendered PDF excludes ## Facts completely and passes round-trip verification (including diacritic word 'Zürich' only in Facts)
+    pdf_path = tmp_path / "facts-test.pdf"
+    compile_pdf(doc, pdf_path)
+    report = verify_pdf(doc, pdf_path)
+    assert report.ok, report.errors
+    assert "Origami" not in report.extracted_text
+    assert "Retail Checkout Revamp" not in report.extracted_text
+    assert "Notice Period" not in report.extracted_text
+    assert "Archived Notes" not in report.extracted_text
+    assert "Zürich" not in report.extracted_text
+    assert "Northstar Pay" in report.extracted_text
+
+
+def test_facts_section_does_not_ground_skills() -> None:
+    md = """---
+schema: cv-md/1.1
+name: Alex Dev
+email: alex@example.com
+---
+
+## Experience
+
+### Engineer — Acme
+*2023-01 – Present | Berlin, Germany*
+
+- Built backend services in Python.
+
+## Skills
+
+- **Backend:** Python, Kubernetes
+
+## Languages
+
+- **English:** C2
+
+## Facts
+
+- **Tool: Kubernetes** — Used briefly in a weekend homelab experiment.
+"""
+    doc = parse_cv_text(md)
+    val = validate_cv(doc)
+    assert val.ok
+    assert any(w.code == "UNGROUNDED_SKILLS" and "Kubernetes" in w.message for w in val.warnings)

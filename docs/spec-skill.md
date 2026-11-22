@@ -1,8 +1,8 @@
 # Specification: CV-Rewriting Agent Skill (`skills/cv-formatter`)
 
-**Status:** Draft v1.0  
+**Status:** Draft v1.1  
 **Standard:** Open Agent Skills Specification ([agentskills.io](https://agentskills.io/specification))  
-**Output Contract:** Produces valid `cv-md/1.0` Markdown files defined in [spec-cv-markdown.md](./spec-cv-markdown.md).
+**Output Contract:** Produces valid `cv-md/1.1` Markdown files defined in [spec-cv-markdown.md](./spec-cv-markdown.md) (backward-compatible with `cv-md/1.0`).
 
 ---
 
@@ -39,8 +39,8 @@ metadata:
 ## 2. Supported Inputs & Workflows
 
 1. **Conversion / Cleanup**: Existing PDF, DOCX, TXT, HTML, LaTeX, LinkedIn PDF export, or unstructured notes → `cv.md`.
-2. **Master CV Creation**: Full career history → `cv-master.md` (same `cv-md/1.0` schema, no 2-page cap).
-3. **Role Tailoring**: `cv-master.md` (or existing `cv.md`) + target Job Description → tight 1–2 page `cv-<target>.md` preserving 100% factual honesty while prioritizing relevant achievements and exact target terminology.
+2. **Master CV Creation**: Full career history → `cv-master.md` (same `cv-md/1.1` schema, no 2-page cap, with a `## Facts` memory bank).
+3. **Role Tailoring**: `cv-master.md` (or existing `cv.md`) + target Job Description → tight 1–2 page `cv-<target>.md` preserving 100% factual honesty while prioritizing relevant achievements and exact target terminology. **Always carry `## Facts` forward** into tailored `.md` files, promote relevant facts from `## Facts` when truthful, and move trimmed/hidden items into `## Facts` so no candidate data is lost.
 
 ---
 

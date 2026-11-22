@@ -1,5 +1,5 @@
 ---
-schema: cv-md/1.0
+schema: cv-md/1.1
 name: Lukas Müller
 headline: Senior Backend Engineer
 location: Amsterdam, Netherlands
@@ -55,3 +55,13 @@ Backend engineer with 7 years of experience building high-throughput payment and
 - **German:** Native
 - **English:** C2 (Proficient / Working Language)
 - **Dutch:** B1 (Intermediate)
+
+## Facts
+
+### Target Roles & Preferences
+- **Preference: Target Roles** — Staff Backend Engineer or Principal Platform Engineer in European fintech/payments.
+- **Preference: Work Setup** — Hybrid Amsterdam or Remote EU; 1-month notice period.
+
+### Archived Projects & Context
+- **Project: Open-Source SEPA Parser** — Built a Go library for ISO 20022 XML validation used internally by 3 partner teams; omitted from 1-page PDF for space.
+- **Skill: Rust** — Built two internal CLI tools in 2024; kept out of `## Skills` until deeper production experience.

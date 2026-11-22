@@ -1,6 +1,6 @@
-# Specification: Canonical Markdown CV Format (`cv-md/1.0`)
+# Specification: Canonical Markdown CV Format (`cv-md/1.1`)
 
-**Status:** Draft v1.0  
+**Status:** Draft v1.1 *(backward-compatible with `cv-md/1.0`)*  
 **Scope:** Single source-of-truth plain-text CV format designed for equal readability by humans, ATS parsers, LLMs, and deterministic PDF rendering.  
 **Default Target:** European market (A4, CEFR languages, GDPR-clean personal metadata).
 
@@ -51,7 +51,7 @@ paper: a4
 
 | Field | Type | Required | Description & Constraints |
 | :--- | :--- | :--- | :--- |
-| `schema` | string | **Yes** | Must be `cv-md/1.0`. |
+| `schema` | string | **Yes** | Must be `cv-md/1.1` (or `cv-md/1.0` for backward compatibility). |
 | `name` | string | **Yes** | Full display name (full Unicode/EU diacritics supported). |
 | `headline` | string | No | Concise target role or professional title (max ~80 chars). |
 | `location` | string | No | City and Country (e.g., `Berlin, Germany` or `Remote, EU`). Never full street address. |
@@ -81,6 +81,7 @@ Top-level sections use `##` headings. To maximize ATS taxonomy recognition and L
 | `## Languages` | No | 6 | Bullet list with CEFR levels (`- **Language:** Level`). |
 | `## Certifications` | No | 7 | Compact bullet list (`- **Name** — Issuer (YYYY)`). |
 | `## Publications` | No | 8 | Compact bullet list (`- **Title** — Venue (YYYY)` with optional link). |
+| `## Facts` | No | 9 | **Markdown-only (never exported to PDF).** Categorized `Name — Description` bullets + optional `###` subheadings storing candidate facts, preferences, and trimmed items for lossless tailoring. |
 
 *Note*: For junior candidates (0–2 years), `## Education` may be placed before `## Experience`.
 
@@ -169,6 +170,27 @@ Valid CEFR tokens: `A1`, `A2`, `B1`, `B2`, `C1`, `C2`, `Native`.
 - **Zero-Downtime Schema Migrations at Scale** — [Engineering Blog](https://example.com/post) (2025)
 ```
 
+### 5.8 `## Facts` (Markdown-Only Memory Bank — Not Exported to PDF)
+
+`## Facts` is an optional, canonical, **non-rendered** section stored only in `.md` files. It solves the lossy-compression problem of CV editing and tailoring:
+
+- **Never exported to PDF**: `cvfmt render` completely omits `## Facts`, and `cvfmt render --verify` asserts that `## Facts` content does not leak into the PDF text layer.
+- **Format**: Categorized **Name — Description** bullets (`- **<Type: Name>** — <Description>`), optionally grouped under `###` subheadings (e.g., `### Target Roles & Preferences`, `### Extra Metrics & Context`, `### Archived Roles & Projects`).
+- **Self-contained tailoring**: When creating a tailored CV from a master CV (or tweaking an existing CV), `## Facts` is carried forward and any trimmed/hidden items are moved into `## Facts` so every `.md` file remains lossless and re-tailorable.
+- **Validation behavior**: `[TODO: ...]` markers and non-date `###` subheadings inside `## Facts` do **not** fail `cvfmt validate` or block PDF rendering. Skills mentioned only in `## Facts` do **not** count as public evidence for `## Skills` (since recruiters and ATS parsers never see `## Facts`).
+- **Privacy note**: Because `## Facts` may hold private context (notice period, target compensation, candid notes), avoid publishing the raw `.md` file publicly without reviewing `## Facts` first.
+
+```markdown
+## Facts
+
+### Target Roles & Preferences
+- **Preference: Notice Period** — 1 month; open to remote EU or hybrid Amsterdam.
+
+### Archived Projects & Skills
+- **Project: Retail Checkout Redesign** — Created new checkout flow for a retail client; gained +2% conversion lift.
+- **Skill: Origami** — Advanced modular paper folding (personal interest; keep off PDF).
+```
+
 ---
 
 ## 6. Validation & Linting Contract
@@ -179,7 +201,7 @@ Valid CEFR tokens: `A1`, `A2`, `B1`, `B2`, `C1`, `C2`, `Native`.
 | **Error** | Missing `name` or invalid `email` | Fail validation / block render |
 | **Error** | Invalid `paper` value (not `a4` or `letter`) | Fail validation / block render |
 | **Error** | Malformed date string (not `YYYY-MM`, `YYYY`, or `Present`) | Fail validation / block render |
-| **Error** | Unresolved `[TODO: ...]` placeholder in body or frontmatter | Fail validation (overrideable only with `--allow-todos`) |
+| **Error** | Unresolved `[TODO: ...]` placeholder in frontmatter or renderable body sections | Fail validation (overrideable with `--allow-todos`; `[TODO]` inside non-exported `## Facts` is ignored) |
 | **Warning** | Non-canonical `##` section heading | Warn about ATS taxonomy risk |
 | **Warning** | `## Skills` item not referenced anywhere in `## Experience` or `## Projects` | Warn about LLM rubric evidence gap |
 | **Warning** | Missing `## Languages` section | Soft EU market reminder |
@@ -187,11 +209,11 @@ Valid CEFR tokens: `A1`, `A2`, `B1`, `B2`, `C1`, `C2`, `Native`.
 
 ---
 
-## 7. Complete Golden Example (`cv-md/1.0`)
+## 7. Complete Golden Example (`cv-md/1.1`)
 
 ```markdown
 ---
-schema: cv-md/1.0
+schema: cv-md/1.1
 name: Lukas Müller
 headline: Senior Backend Engineer
 location: Amsterdam, Netherlands
