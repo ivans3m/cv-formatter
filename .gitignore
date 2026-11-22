@@ -20,3 +20,6 @@ build/
 
 # Personal blog post (kept local, never committed)
 docs/blog/
+
+# Local generated CV outputs (kept local, never committed)
+output/

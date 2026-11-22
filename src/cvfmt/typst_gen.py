@@ -181,7 +181,7 @@ def _render_section(section: Section, *, accent: str, include_aspirational: bool
     )
 
     if keep_together:
-        lines.append("#block(breakable: false, above: 0pt, below: 0pt)[")
+        lines.append("#block(breakable: false, above: 15pt, below: 0pt)[")
         if section.title:
             lines.append(f"  == {escape_typst(section.title)}")
         lines.append("  #v(2pt)")
