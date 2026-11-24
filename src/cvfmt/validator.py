@@ -6,12 +6,12 @@ import re
 
 from cvfmt.models import (
     CANONICAL_SECTIONS,
-    CANONICAL_SECTIONS_LOWER,
     CVDocument,
     NON_RENDERED_SECTIONS,
     SUPPORTED_SCHEMAS,
     ValidationIssue,
     ValidationResult,
+    canonical_section_key,
     is_aspirational_bullet,
 )
 
@@ -21,7 +21,10 @@ _HEX_COLOR_RE = re.compile(r"^#?[0-9a-fA-F]{6}$")
 _DATE_TOKEN_RE = re.compile(r"^(\d{4}(-\d{2})?|Present)$")
 _TODO_RE = re.compile(r"\[TODO(?::[^\]]*)?\]", re.IGNORECASE)
 _SKILL_BULLET_RE = re.compile(r"^\*\*([^:*]+):?\*\*:?\s*(.+)$")
-_CEFR_TOKEN_RE = re.compile(r"\b(A1|A2|B1|B2|C1|C2|Native)\b", re.IGNORECASE)
+_CEFR_TOKEN_RE = re.compile(
+    r"\b(A1|A2|B1|B2|C1|C2|Native|Moedertaal|Muttersprache|Langue maternelle|Natif)\b",
+    re.IGNORECASE,
+)
 
 
 def _validate_date_range(date_range: str) -> bool:
@@ -51,7 +54,7 @@ def _validate_date_range(date_range: str) -> bool:
 def _extract_skill_items(doc: CVDocument) -> list[str]:
     skills: list[str] = []
     for section in doc.sections:
-        if section.title.lower() == "skills":
+        if canonical_section_key(section.title) == "skills":
             for bullet in section.bullets:
                 m = _SKILL_BULLET_RE.match(bullet)
                 rhs = m.group(2) if m else bullet
@@ -65,7 +68,7 @@ def _extract_skill_items(doc: CVDocument) -> list[str]:
 def _experience_and_projects_text(doc: CVDocument) -> str:
     chunks: list[str] = []
     for section in doc.sections:
-        if section.title.lower() in ("experience", "projects"):
+        if canonical_section_key(section.title) in ("experience", "projects"):
             chunks.extend(section.paragraphs)
             chunks.extend(section.bullets)
             for entry in section.entries:
@@ -82,7 +85,7 @@ def _iter_renderable_bullets(doc: CVDocument) -> list[tuple[int, str]]:
     """Yield (approx line, bullet text) for bullets in PDF-exported sections."""
     out: list[tuple[int, str]] = []
     for section in doc.sections:
-        if section.title.lower() in NON_RENDERED_SECTIONS:
+        if canonical_section_key(section.title) in NON_RENDERED_SECTIONS:
             continue
         for bullet in section.bullets:
             out.append((section.line, bullet))
@@ -162,7 +165,7 @@ def validate_cv(
     non_rendered_ranges = [
         (s.line, s.end_line)
         for s in doc.sections
-        if s.title.lower() in NON_RENDERED_SECTIONS and s.line > 0
+        if canonical_section_key(s.title) in NON_RENDERED_SECTIONS and s.line > 0
     ]
 
     def _in_non_rendered(line_no: int) -> bool:
@@ -193,31 +196,32 @@ def validate_cv(
                 )
 
     # 3. Section & date checks
-    section_names_lower = {s.title.lower() for s in doc.sections}
-    if "experience" not in section_names_lower:
+    canonical_keys = {canonical_section_key(s.title) for s in doc.sections}
+    if "experience" not in canonical_keys:
         result.issues.append(
             ValidationIssue(
                 severity="error",
                 code="MISSING_EXPERIENCE",
-                message="Document must include an '## Experience' section.",
+                message="Document must include an '## Experience' section (or localized EU equivalent).",
             )
         )
 
     for section in doc.sections:
-        if section.title.lower() not in CANONICAL_SECTIONS_LOWER:
+        canon_key = canonical_section_key(section.title)
+        if canon_key is None:
             result.issues.append(
                 ValidationIssue(
                     severity="warning",
                     code="NON_CANONICAL_SECTION",
                     message=(
                         f"Section '## {section.title}' is non-canonical and may hurt ATS parsing. "
-                        f"Recommended: {', '.join(CANONICAL_SECTIONS)}."
+                        f"Recommended: {', '.join(CANONICAL_SECTIONS)} (or nl/de/fr equivalents)."
                     ),
                     line=section.line,
                 )
             )
 
-        if section.title.lower() in NON_RENDERED_SECTIONS:
+        if canon_key in NON_RENDERED_SECTIONS:
             continue
 
         for entry in section.entries:
@@ -247,7 +251,7 @@ def validate_cv(
                     )
 
         # EU CEFR check for Languages section
-        if section.title.lower() == "languages":
+        if canon_key == "languages":
             for bullet in section.bullets:
                 if not _CEFR_TOKEN_RE.search(bullet):
                     result.issues.append(
@@ -255,14 +259,15 @@ def validate_cv(
                             severity="warning",
                             code="MISSING_CEFR_LEVEL",
                             message=(
-                                f"Language entry {bullet!r} lacks a CEFR level (A1–C2 or Native)."
+                                f"Language entry {bullet!r} lacks a CEFR level "
+                                "(A1–C2, Native, Moedertaal, Muttersprache, or Langue maternelle)."
                             ),
                             line=section.line,
                         )
                     )
 
     # 4. EU Languages reminder
-    if "languages" not in section_names_lower:
+    if "languages" not in canonical_keys:
         result.issues.append(
             ValidationIssue(
                 severity="warning",

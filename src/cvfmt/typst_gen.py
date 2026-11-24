@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
-from cvfmt.models import CVDocument, Entry, Section, SubRole, is_aspirational_bullet
+from cvfmt.models import CVDocument, Entry, Section, SubRole, canonical_section_key, is_aspirational_bullet
 
 
 DEFAULT_ACCENT = "#71717A"  # Refined light-medium neutral grey (Zinc 500)
@@ -172,7 +172,17 @@ def _render_entry(entry: Entry, *, include_aspirational: bool = False) -> list[s
 
 def _render_section(section: Section, *, accent: str, include_aspirational: bool = False) -> list[str]:
     lines: list[str] = []
-    compact_bullets = section.title.lower() in ("skills", "languages", "certifications", "publications")
+    canon = canonical_section_key(section.title)
+    compact_bullets = canon in (
+        "skills",
+        "languages",
+        "certifications",
+        "awards",
+        "speaking",
+        "publications",
+        "courses",
+        "interests",
+    )
     keep_together = (
         compact_bullets
         and not section.entries
@@ -197,7 +207,7 @@ def _render_section(section: Section, *, accent: str, include_aspirational: bool
     if section.title:
         lines.append(f"== {escape_typst(section.title)}")
 
-    is_summary = section.title.lower() == "summary"
+    is_summary = canon == "summary"
     for p in section.paragraphs:
         if is_summary:
             lines.append(
@@ -249,6 +259,8 @@ def generate_typst(
         contact_items.append(escape_typst(fm.location))
     if fm.work_authorization:
         contact_items.append(escape_typst(fm.work_authorization))
+    if fm.availability:
+        contact_items.append(escape_typst(fm.availability))
     if fm.email:
         email_esc = escape_typst_string(fm.email)
         contact_items.append(f'#link("mailto:{email_esc}")[{escape_typst(fm.email)}]')

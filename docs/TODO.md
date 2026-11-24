@@ -43,6 +43,7 @@ Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewr
 - [x] **Public contributor docs** — Added `CONTRIBUTING.md` and `.github/ISSUE_TEMPLATE/` (`bug_report.yml`, `feature_request.yml`, `config.yml`), linked from `README.md`.
 - [x] **Schema `cv-md/1.1` & non-exported `## Facts` section** — Added `## Facts` as an optional canonical Markdown-only memory bank (`Name — Description` bullets + optional `###` subheadings), omitted from PDF rendering and verified anti-leak in `cvfmt render --verify`, with backward-compatible `cv-md/1.0` support and updated skill instructions.
 - [x] **Tailoring skill, dreamer mode, and `cvfmt tailor` (v0.2.0)** — `skills/cv-tailor/`, aspirational validation/render guards, strict deterministic pipeline, dreamer coverage + `--prepare` bundle, writer round-trip, pytest + CI smoke.
+- [x] **Expanded `cv-md/1.1` schema & localized EU headings (`nl`, `de`, `fr`)** — Full `## Certifications` contract (expiry, credential ID, verification link), new optional canonical sections (`Awards`, `Speaking`, `Volunteering`, `Courses`, `Interests`), optional `availability` frontmatter field, documented 1-line company context & Career Break patterns, localized `nl`/`de`/`fr` heading aliases across validator/renderer/verifier/tailor, and upgraded LinkedIn/JSON Resume importers.
 
 ---
 
@@ -64,5 +65,5 @@ Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewr
 - [ ] **Polish PDF design**
   - *Comment*: Further refine the Warm Editorial layout's visual craft—micro-typography, long role/company title wrapping (avoiding awkward `. Company` line breaks), page-2 balance/density, and optional modern theme presets (`--theme editorial|neon|swiss`) while preserving 100% single-column ATS/LLM readability.
 - [ ] **Optional `Inter` typeface theme flag** (`--font ibm-plex|inter`) once IBM Plex Sans v1 is solid.
-- [ ] **Localized EU canonical section heading presets** (e.g., `de`, `nl`, `fr`) for non-English EU applications.
+- [x] **Localized EU canonical section heading presets** (`nl`, `de`, `fr`) for non-English EU applications.
 - [ ] **Optional DACH photo toggle** (strictly opt-in, off by default, keeping linear text order intact).

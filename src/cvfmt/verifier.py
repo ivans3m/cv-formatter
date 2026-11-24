@@ -9,7 +9,7 @@ from pathlib import Path
 import pdfplumber
 from pypdf import PdfReader
 
-from cvfmt.models import CVDocument, NON_RENDERED_SECTIONS
+from cvfmt.models import CVDocument, NON_RENDERED_SECTIONS, canonical_section_key
 
 
 @dataclass
@@ -85,6 +85,7 @@ def verify_pdf(doc: CVDocument, pdf_path: str | Path) -> VerificationReport:
         ("name", fm.name),
         ("email", fm.email),
         ("phone", fm.phone or ""),
+        ("availability", fm.availability or ""),
     ):
         if value and value not in norm_plumber:
             report.errors.append(f"Contact field '{label}' ({value!r}) missing from PDF text layer.")
@@ -100,7 +101,7 @@ def verify_pdf(doc: CVDocument, pdf_path: str | Path) -> VerificationReport:
     # 3. Reading order fidelity: renderable section titles & entry headings must appear in exact order
     cursor = 0
     renderable_chunks: list[str] = [
-        v for v in (fm.name, fm.headline, fm.location, fm.work_authorization) if v
+        v for v in (fm.name, fm.headline, fm.location, fm.work_authorization, fm.availability) if v
     ]
     for section in doc.renderable_sections:
         if section.title:
@@ -147,7 +148,7 @@ def verify_pdf(doc: CVDocument, pdf_path: str | Path) -> VerificationReport:
 
     # 5. Anti-leak check: non-exported sections (e.g. '## Facts') must never appear in the rendered PDF
     non_rendered_sections = [
-        s for s in doc.sections if s.title.lower() in NON_RENDERED_SECTIONS
+        s for s in doc.sections if canonical_section_key(s.title) in NON_RENDERED_SECTIONS
     ]
     for hidden_sec in non_rendered_sections:
         fact_items: list[str] = []

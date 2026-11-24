@@ -47,7 +47,7 @@ python3 -m venv .venv
 .venv/bin/pytest -v
 ```
 
-Golden fixtures under `tests/fixtures/` cover junior/senior EU layouts, multi-role consulting, and Unicode/diacritic stress cases (**22 tests**).
+Golden fixtures under `tests/fixtures/` cover junior/senior EU layouts, multi-role consulting, tailoring, importers, optional sections, localized EU headings, and Unicode/diacritic stress cases.
 
 Optional LLM extraction benchmark (uses `tests/fixtures/` and your own LLM for the grading step):
 
@@ -84,7 +84,7 @@ Optional LLM extraction benchmark (uses `tests/fixtures/` and your own LLM for t
 | --- | --- |
 | [docs/README.md](docs/README.md) | Index of specs and project tracking |
 | [docs/TODO.md](docs/TODO.md) | Completed work, backlog, and implementation notes |
-| [docs/spec-cv-markdown.md](docs/spec-cv-markdown.md) | `cv-md/1.0` schema and validation rules |
+| [docs/spec-cv-markdown.md](docs/spec-cv-markdown.md) | `cv-md/1.1` schema, optional blocks, localized EU headings, and validation rules |
 | [docs/spec-skill.md](docs/spec-skill.md) | Agent skill contract (Silent / Extended modes) |
 | [docs/spec-pdf-renderer.md](docs/spec-pdf-renderer.md) | `cvfmt` CLI and Typst rendering pipeline |
 

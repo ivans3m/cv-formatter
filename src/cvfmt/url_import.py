@@ -10,7 +10,7 @@ from html.parser import HTMLParser
 from urllib.parse import urlparse
 
 from cvfmt.linkedin import _build_cv_markdown
-from cvfmt.models import SUPPORTED_SCHEMAS
+from cvfmt.models import LOCALIZED_SECTION_ALIASES, NON_RENDERED_SECTIONS, SUPPORTED_SCHEMAS
 
 
 MAX_RESPONSE_BYTES = 5 * 1024 * 1024  # 5 MB safety limit
@@ -20,25 +20,28 @@ class LinkedInAuthwallError(ValueError):
     """Raised when a direct LinkedIn profile URL is passed."""
 
 
+_CORE_HTML_SECTIONS = frozenset({"summary", "experience", "education", "skills"})
+_OPTIONAL_HTML_SECTIONS = frozenset({"languages", "certifications", "awards", "courses", "interests"})
+_SUPPORTED_HTML_SECTIONS = _CORE_HTML_SECTIONS | _OPTIONAL_HTML_SECTIONS
+
 _SECTION_ALIASES: dict[str, str] = {
-    "summary": "summary",
+    **{
+        k: v
+        for k, v in LOCALIZED_SECTION_ALIASES.items()
+        if v not in NON_RENDERED_SECTIONS and v in _SUPPORTED_HTML_SECTIONS
+    },
     "about": "summary",
     "profile": "summary",
     "bio": "summary",
-    "experience": "experience",
     "employment": "experience",
     "work": "experience",
     "work experience": "experience",
     "career": "experience",
-    "projects": "projects",
-    "skills": "skills",
     "technologies": "skills",
     "tech stack": "skills",
-    "education": "education",
-    "languages": "languages",
-    "certifications": "certifications",
     "certificates": "certifications",
-    "publications": "publications",
+    "honors": "awards",
+    "honors & awards": "awards",
 }
 
 _DATE_RANGE_RE = re.compile(
@@ -156,8 +159,45 @@ def convert_json_resume(data: dict, *, paper: str = "a4") -> str:
                     "name": str(c["name"]).strip(),
                     "authority": str(c.get("issuer") or "").strip(),
                     "date": str(c.get("date") or "").strip(),
+                    "url": str(c.get("url") or "").strip(),
                 }
             )
+
+    awards: list[dict] = []
+    for a in data.get("awards") or []:
+        if a.get("title"):
+            awards.append(
+                {
+                    "title": str(a["title"]).strip(),
+                    "awarder": str(a.get("awarder") or "").strip(),
+                    "date": str(a.get("date") or "").strip(),
+                    "summary": str(a.get("summary") or "").strip(),
+                }
+            )
+
+    volunteering: list[dict] = []
+    for v in data.get("volunteer") or []:
+        if v.get("organization") or v.get("position"):
+            v_bullets = [str(b).strip() for b in (v.get("highlights") or []) if str(b).strip()]
+            if v.get("summary") and not v_bullets:
+                v_bullets = [str(v["summary"]).strip()]
+            volunteering.append(
+                {
+                    "role": str(v.get("position") or "Volunteer").strip(),
+                    "organization": str(v.get("organization") or "").strip(),
+                    "start": str(v.get("startDate") or "").strip(),
+                    "end": str(v.get("endDate") or "").strip(),
+                    "location": "",
+                    "bullets": v_bullets,
+                }
+            )
+
+    interests: list[str] = []
+    for item in data.get("interests") or []:
+        if isinstance(item, dict) and item.get("name"):
+            interests.append(str(item["name"]).strip())
+        elif isinstance(item, str) and item.strip():
+            interests.append(item.strip())
 
     return _build_cv_markdown(
         name=name,
@@ -172,6 +212,9 @@ def convert_json_resume(data: dict, *, paper: str = "a4") -> str:
         skills=skills,
         languages=languages,
         certifications=certifications,
+        awards=awards,
+        volunteering=volunteering,
+        interests=interests,
         paper=paper,
     )
 
@@ -306,8 +349,10 @@ def convert_html_cv(html: str, *, source_url: str = "", paper: str = "a4") -> st
     for tag, text in blocks:
         if text in ("*", "•", "—", "–"):
             continue
-        sec_key = _SECTION_ALIASES.get(text.lower().rstrip(":"))
-        if sec_key and (tag in ("h1", "h2", "h3", "h4") or len(text) <= 24):
+        norm_heading = " ".join(text.replace("\u2019", "'").replace("\u2018", "'").lower().rstrip(":").split())
+        sec_key = _SECTION_ALIASES.get(norm_heading)
+        is_heading_tag = tag in ("h1", "h2", "h3", "h4")
+        if sec_key and (is_heading_tag or (sec_key in _CORE_HTML_SECTIONS and len(text) <= 24)):
             cur_sec = sec_key
             sections.setdefault(cur_sec, [])
             continue
@@ -401,6 +446,38 @@ def convert_html_cv(html: str, *, source_url: str = "", paper: str = "a4") -> st
         elif len(t) <= 40:
             skills.append(t)
 
+    # Optional HTML sections (languages, certifications, awards, courses, interests)
+    languages: list[tuple[str, str]] = []
+    for _, t in sections.get("languages", []):
+        if ":" in t:
+            lang_name, lvl = t.split(":", 1)
+            if lang_name.strip():
+                languages.append((lang_name.strip(), lvl.strip()))
+        elif len(t) <= 60:
+            languages.append((t, ""))
+
+    certifications = [
+        {"name": t, "authority": "", "date": ""}
+        for _, t in sections.get("certifications", [])
+        if len(t) > 2
+    ]
+    awards = [
+        {"title": t, "awarder": "", "date": "", "summary": ""}
+        for _, t in sections.get("awards", [])
+        if len(t) > 2
+    ]
+    courses = [
+        {"name": t, "provider": "", "date": ""}
+        for _, t in sections.get("courses", [])
+        if len(t) > 2
+    ]
+    interests: list[str] = []
+    for _, t in sections.get("interests", []):
+        if "," in t:
+            interests.extend(item.strip() for item in t.split(",") if item.strip() and len(item.strip()) <= 60)
+        elif len(t) <= 60:
+            interests.append(t)
+
     # Infer location from most recent experience if available
     location = next((p["location"] for p in positions if p.get("location")), "")
 
@@ -413,6 +490,11 @@ def convert_html_cv(html: str, *, source_url: str = "", paper: str = "a4") -> st
         positions=positions,
         education=education,
         skills=skills,
+        languages=languages,
+        certifications=certifications,
+        awards=awards,
+        courses=courses,
+        interests=interests,
         paper=paper,
     )
 

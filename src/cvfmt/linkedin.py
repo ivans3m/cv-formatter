@@ -110,6 +110,10 @@ def _build_cv_markdown(
     skills: list[str] | None = None,
     languages: list[tuple[str, str]] | None = None,
     certifications: list[dict] | None = None,
+    awards: list[dict] | None = None,
+    volunteering: list[dict] | None = None,
+    courses: list[dict] | None = None,
+    interests: list[str] | None = None,
     paper: str = "a4",
 ) -> str:
     """Assemble a clean, valid cv-md/1.1 Markdown string from normalized LinkedIn fields."""
@@ -204,26 +208,106 @@ def _build_cv_markdown(
             if ed.get("bullets"):
                 lines.append("")
 
+    if languages:
+        lang_lines = [
+            f"- **{lang_name.strip()}:** {map_linkedin_proficiency(level)}"
+            for lang_name, level in languages
+            if lang_name.strip()
+        ]
+        if lang_lines:
+            lines.extend(["## Languages", "", *lang_lines, ""])
+
     if certifications:
-        lines.extend(["## Certifications", ""])
+        cert_lines: list[str] = []
         for c in certifications:
-            c_name = c.get("name", "").strip()
-            auth = c.get("authority", "").strip()
-            year = normalize_linkedin_date(c.get("date"))[:4]
+            c_name = re.sub(r"\s+", " ", c.get("name", "")).strip()
+            auth = re.sub(r"\s+", " ", c.get("authority", "")).strip()
+            start = normalize_linkedin_date(c.get("date"))
+            end = normalize_linkedin_date(c.get("end_date"))
+            cred_id = re.sub(r"\s+", " ", c.get("credential_id", "")).replace("`", "").strip()
+            url = c.get("url", "").strip()
             if not c_name:
                 continue
             suffix = f" — {auth}" if auth else ""
-            if year:
-                suffix += f" ({year})"
-            lines.append(f"- **{c_name}**{suffix}")
-        lines.append("")
+            meta_parts: list[str] = []
+            if start and end:
+                meta_parts.append(f"{start} – {end}")
+            elif start:
+                meta_parts.append(start)
+            if cred_id:
+                meta_parts.append(f"ID: `{cred_id}`")
+            if meta_parts:
+                suffix += f" ({', '.join(meta_parts)})"
+            if url and url.startswith(("http://", "https://")) and not re.search(r"[\s)]", url):
+                suffix += f" | [Verify]({url})"
+            cert_lines.append(f"- **{c_name}**{suffix}")
+        if cert_lines:
+            lines.extend(["## Certifications", "", *cert_lines, ""])
 
-    if languages:
-        lines.extend(["## Languages", ""])
-        for lang_name, level in languages:
-            if lang_name.strip():
-                lines.append(f"- **{lang_name.strip()}:** {map_linkedin_proficiency(level)}")
-        lines.append("")
+    if awards:
+        award_lines: list[str] = []
+        for a in awards:
+            a_title = re.sub(r"\s+", " ", a.get("title", "")).strip()
+            awarder = re.sub(r"\s+", " ", a.get("awarder", "")).strip()
+            a_date = normalize_linkedin_date(a.get("date"))
+            a_summary = re.sub(r"\s+", " ", a.get("summary", "")).strip()
+            if not a_title:
+                continue
+            suffix = f" — {awarder}" if awarder else ""
+            if a_date:
+                suffix += f" ({a_date})"
+            if a_summary:
+                suffix += f" — {a_summary}"
+            award_lines.append(f"- **{a_title}**{suffix}")
+        if award_lines:
+            lines.extend(["## Awards", "", *award_lines, ""])
+
+    if volunteering:
+        vol_lines: list[str] = []
+        for v in volunteering:
+            v_role = re.sub(r"\s+", " ", v.get("role", "")).strip()
+            v_org = re.sub(r"\s+", " ", v.get("organization", "")).strip()
+            if not v_role and not v_org:
+                continue
+            v_role = v_role or "Volunteer"
+            heading = f"### {v_role} — {v_org}" if v_org else f"### {v_role}"
+            v_start = normalize_linkedin_date(v.get("start"))
+            v_end = normalize_linkedin_date(v.get("end")) or ("Present" if v_start else "")
+            date_part = f"{v_start} – {v_end}" if (v_start and v_end) else (v_start or v_end)
+            v_loc = re.sub(r"\s+", " ", v.get("location", "")).strip()
+            meta = f"{date_part} | {v_loc}" if (date_part and v_loc) else (date_part or v_loc)
+            vol_lines.append(heading)
+            if meta:
+                vol_lines.append(f"*{meta}*")
+            vol_lines.append("")
+            for b in v.get("bullets", []):
+                cleaned_b = re.sub(r"\s+", " ", b).strip()
+                if cleaned_b:
+                    vol_lines.append(f"- {cleaned_b}")
+            if v.get("bullets"):
+                vol_lines.append("")
+        if vol_lines:
+            lines.extend(["## Volunteering", "", *vol_lines])
+
+    if courses:
+        course_lines: list[str] = []
+        for co in courses:
+            co_name = re.sub(r"\s+", " ", co.get("name", "")).strip()
+            co_prov = re.sub(r"\s+", " ", co.get("provider", "")).strip()
+            co_date = normalize_linkedin_date(co.get("date"))
+            if not co_name:
+                continue
+            suffix = f" — {co_prov}" if co_prov else ""
+            if co_date:
+                suffix += f" ({co_date})"
+            course_lines.append(f"- **{co_name}**{suffix}")
+        if course_lines:
+            lines.extend(["## Courses", "", *course_lines, ""])
+
+    if interests:
+        cleaned_interests = list(dict.fromkeys(re.sub(r"\s+", " ", i).strip() for i in interests if i.strip()))
+        if cleaned_interests:
+            lines.extend(["## Interests", "", f"- **Interests:** {', '.join(cleaned_interests)}", ""])
 
     return "\n".join(lines).rstrip() + "\n"
 
@@ -264,6 +348,9 @@ def _parse_csv_bundle(source: Path | zipfile.ZipFile, *, paper: str) -> str:
     skill_rows = _read_csv_rows(source, "Skills.csv")
     lang_rows = _read_csv_rows(source, "Languages.csv")
     cert_rows = _read_csv_rows(source, "Certifications.csv")
+    honor_rows = _read_csv_rows(source, "Honors.csv")
+    course_rows = _read_csv_rows(source, "Courses.csv")
+    volunteer_rows = _read_csv_rows(source, "Volunteering.csv")
 
     prof = profile_rows[0] if profile_rows else {}
     first = prof.get("First Name", "").strip()
@@ -324,9 +411,43 @@ def _parse_csv_bundle(source: Path | zipfile.ZipFile, *, paper: str) -> str:
             "name": cr.get("Name", "").strip(),
             "authority": cr.get("Authority", "").strip(),
             "date": cr.get("Started On", "").strip(),
+            "end_date": cr.get("Finished On", "").strip(),
+            "credential_id": cr.get("License Number", "").strip(),
+            "url": cr.get("Url", "").strip(),
         }
         for cr in cert_rows
         if cr.get("Name", "").strip()
+    ]
+    awards = [
+        {
+            "title": hr.get("Title", "").strip(),
+            "awarder": hr.get("Issuer", "").strip(),
+            "date": hr.get("Issued On", "").strip(),
+            "summary": hr.get("Description", "").strip(),
+        }
+        for hr in honor_rows
+        if hr.get("Title", "").strip()
+    ]
+    courses = [
+        {
+            "name": cor.get("Name", "").strip(),
+            "provider": cor.get("Number", "").strip(),
+            "date": "",
+        }
+        for cor in course_rows
+        if cor.get("Name", "").strip()
+    ]
+    volunteering = [
+        {
+            "role": vr.get("Role", "").strip() or "Volunteer",
+            "organization": vr.get("Company Name", "").strip(),
+            "start": vr.get("Started On", "").strip(),
+            "end": vr.get("Finished On", "").strip(),
+            "location": "",
+            "bullets": _description_to_bullets(vr.get("Description", "")),
+        }
+        for vr in volunteer_rows
+        if vr.get("Company Name", "").strip() or vr.get("Role", "").strip()
     ]
 
     return _build_cv_markdown(
@@ -341,6 +462,9 @@ def _parse_csv_bundle(source: Path | zipfile.ZipFile, *, paper: str) -> str:
         skills=skills,
         languages=languages,
         certifications=certifications,
+        awards=awards,
+        volunteering=volunteering,
+        courses=courses,
         paper=paper,
     )
 
@@ -407,6 +531,7 @@ def import_linkedin_pdf(pdf_path: Path, *, paper: str = "a4") -> str:
             i += 1
 
     certifications = [{"name": c, "authority": "", "date": ""} for c in sidebar_sections.get("certifications", [])]
+    awards = [{"title": a, "awarder": "", "date": "", "summary": ""} for a in sidebar_sections.get("honors-awards", [])]
 
     # Parse right main column (Name, Headline, Location, Summary, Experience, Education)
     main_headers = {"summary", "experience", "education"}
@@ -484,6 +609,7 @@ def import_linkedin_pdf(pdf_path: Path, *, paper: str = "a4") -> str:
         skills=skills,
         languages=languages,
         certifications=certifications,
+        awards=awards,
         paper=paper,
     )
 

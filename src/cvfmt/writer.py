@@ -67,6 +67,8 @@ def document_to_markdown(doc: CVDocument) -> str:
         data["location"] = fm.location
     if fm.work_authorization:
         data["work_authorization"] = fm.work_authorization
+    if fm.availability:
+        data["availability"] = fm.availability
     data["email"] = fm.email
     if fm.phone:
         data["phone"] = fm.phone

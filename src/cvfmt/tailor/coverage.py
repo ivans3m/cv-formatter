@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from cvfmt.models import CVDocument
+from cvfmt.models import CVDocument, canonical_section_key
 from cvfmt.tailor.keywords import extract_keywords, tokenize
 from cvfmt.tailor.score import score_text
 
@@ -47,7 +47,7 @@ def coverage_report(doc: CVDocument, jd_text: str) -> str:
         "=== Section relevance (0 = weak) ===",
     ]
     for section in doc.renderable_sections:
-        if section.title.lower() not in ("experience", "skills", "summary"):
+        if canonical_section_key(section.title) not in ("experience", "skills", "summary"):
             continue
         body = "\n".join(section.paragraphs + section.bullets)
         lines.append(f"  {section.title}: {score_text(body, keywords):.1f}")

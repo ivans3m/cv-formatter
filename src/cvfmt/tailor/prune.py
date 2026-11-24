@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 
-from cvfmt.models import CVDocument, Entry, Section
+from cvfmt.models import CVDocument, Entry, Section, canonical_section_key
 from cvfmt.tailor.score import score_bullet
 
 
@@ -26,11 +26,20 @@ def _renderable_char_count(doc: CVDocument) -> int:
     return total
 
 
+_LOCALIZED_FACTS_TITLES: dict[str, str] = {
+    "nl": "Feiten",
+    "de": "Fakten",
+    "fr": "Faits",
+}
+
+
 def _ensure_facts(doc: CVDocument) -> Section:
     for section in doc.sections:
-        if section.title.lower() == "facts":
+        if canonical_section_key(section.title) == "facts":
             return section
-    facts = Section(title="Facts", line=0)
+    lang_code = (doc.frontmatter.lang or "en").strip().lower().split("-")[0]
+    title = _LOCALIZED_FACTS_TITLES.get(lang_code, "Facts")
+    facts = Section(title=title, line=0)
     doc.sections.append(facts)
     return facts
 
@@ -70,7 +79,7 @@ def prune_to_budget(
     def _lowest_bullet() -> tuple[float, str, str, list[str]] | None:
         best: tuple[float, str, str, list[str]] | None = None
         for section in doc.renderable_sections:
-            if section.title.lower() not in ("experience", "projects"):
+            if canonical_section_key(section.title) not in ("experience", "projects"):
                 continue
             for bullet in section.bullets:
                 sc = score_bullet(bullet, keywords)
@@ -108,7 +117,8 @@ def prune_to_budget(
 
 def reorder_by_relevance(doc: CVDocument, keywords: list[str]) -> None:
     for section in doc.renderable_sections:
-        if section.title.lower() in ("experience", "projects"):
+        canon = canonical_section_key(section.title)
+        if canon in ("experience", "projects"):
             section.bullets.sort(key=lambda b: score_bullet(b, keywords), reverse=True)
             for entry in section.entries:
                 entry.bullets.sort(key=lambda b: score_bullet(b, keywords), reverse=True)
@@ -122,7 +132,7 @@ def reorder_by_relevance(doc: CVDocument, keywords: list[str]) -> None:
                 ),
                 reverse=True,
             )
-        elif section.title.lower() == "skills":
+        elif canon == "skills":
             section.bullets = _reorder_skill_lines(section.bullets, keywords)
 
 

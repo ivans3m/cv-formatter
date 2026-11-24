@@ -19,13 +19,115 @@ CANONICAL_SECTIONS: tuple[str, ...] = (
     "Education",
     "Languages",
     "Certifications",
+    "Awards",
+    "Speaking",
     "Publications",
+    "Volunteering",
+    "Courses",
+    "Interests",
     "Facts",
 )
 
 NON_RENDERED_SECTIONS: frozenset[str] = frozenset({"facts"})
 
 CANONICAL_SECTIONS_LOWER: dict[str, str] = {s.lower(): s for s in CANONICAL_SECTIONS}
+
+# Localized EU canonical heading aliases (nl, de, fr) mapped to canonical lowercase keys
+LOCALIZED_SECTION_ALIASES: dict[str, str] = {
+    # English canonical
+    **{s.lower(): s.lower() for s in CANONICAL_SECTIONS},
+    # Dutch (nl)
+    "profiel": "summary",
+    "samenvatting": "summary",
+    "over mij": "summary",
+    "werkervaring": "experience",
+    "ervaring": "experience",
+    "projecten": "projects",
+    "vaardigheden": "skills",
+    "competenties": "skills",
+    "opleiding": "education",
+    "opleidingen": "education",
+    "talen": "languages",
+    "certificeringen": "certifications",
+    "certificaten": "certifications",
+    "prijzen": "awards",
+    "onderscheidingen": "awards",
+    "prijzen & onderscheidingen": "awards",
+    "lezingen": "speaking",
+    "sprekerservaring": "speaking",
+    "presentaties": "speaking",
+    "publicaties": "publications",
+    "vrijwilligerswerk": "volunteering",
+    "cursussen": "courses",
+    "trainingen": "courses",
+    "interesses": "interests",
+    "hobby's": "interests",
+    "feiten": "facts",
+    # German (de)
+    "profil": "summary",
+    "zusammenfassung": "summary",
+    "kurzprofil": "summary",
+    "über mich": "summary",
+    "berufserfahrung": "experience",
+    "erfahrung": "experience",
+    "projekte": "projects",
+    "kenntnisse": "skills",
+    "fähigkeiten": "skills",
+    "kompetenzen": "skills",
+    "ausbildung": "education",
+    "bildung": "education",
+    "studium": "education",
+    "sprachen": "languages",
+    "sprachkenntnisse": "languages",
+    "zertifizierungen": "certifications",
+    "zertifikate": "certifications",
+    "auszeichnungen": "awards",
+    "preise": "awards",
+    "vorträge": "speaking",
+    "publikationen": "publications",
+    "veröffentlichungen": "publications",
+    "ehrenamt": "volunteering",
+    "engagement": "volunteering",
+    "kurse": "courses",
+    "weiterbildung": "courses",
+    "fortbildungen": "courses",
+    "interessen": "interests",
+    "hobbys": "interests",
+    "fakten": "facts",
+    # French (fr)
+    "résumé": "summary",
+    "à propos": "summary",
+    "expérience": "experience",
+    "expérience professionnelle": "experience",
+    "expériences": "experience",
+    "expériences professionnelles": "experience",
+    "projets": "projects",
+    "compétences": "skills",
+    "formation": "education",
+    "formations": "education",
+    "éducation": "education",
+    "langues": "languages",
+    "certificats": "certifications",
+    "prix": "awards",
+    "distinctions": "awards",
+    "prix et distinctions": "awards",
+    "conférences": "speaking",
+    "interventions": "speaking",
+    "bénévolat": "volunteering",
+    "cours": "courses",
+    "formations complémentaires": "courses",
+    "centres d'intérêt": "interests",
+    "intérêts": "interests",
+    "faits": "facts",
+}
+
+
+def canonical_section_key(title: str) -> str | None:
+    """Resolve an English or localized (nl/de/fr) section heading to its canonical lowercase key."""
+    normalized = " ".join(
+        title.replace("\u2019", "'").replace("\u2018", "'").strip().lower().split()
+    )
+    return LOCALIZED_SECTION_ALIASES.get(normalized)
 
 
 class LinkItem(BaseModel):
@@ -48,6 +150,7 @@ class Frontmatter(BaseModel):
     headline: str | None = None
     location: str | None = None
     work_authorization: str | None = None
+    availability: str | None = None
     email: str = ""
     phone: str | None = None
     links: list[LinkItem] = Field(default_factory=list)
@@ -104,12 +207,12 @@ class CVDocument:
     @property
     def renderable_sections(self) -> list[Section]:
         """Sections exported to PDF (excludes non-rendered sections such as '## Facts')."""
-        return [s for s in self.sections if s.title.lower() not in NON_RENDERED_SECTIONS]
+        return [s for s in self.sections if canonical_section_key(s.title) not in NON_RENDERED_SECTIONS]
 
     @property
     def facts_section(self) -> Section | None:
         """Optional non-exported '## Facts' memory bank section, if present."""
-        return next((s for s in self.sections if s.title.lower() == "facts"), None)
+        return next((s for s in self.sections if canonical_section_key(s.title) == "facts"), None)
 
 
 @dataclass
