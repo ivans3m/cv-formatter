@@ -1,6 +1,6 @@
 # Project TODO & Backlog
 
-Living task tracker for **CV Formatter** (`cv-md/1.0` format, open-standard rewriting skill, and Python + Typst local CLI).
+Living task tracker for **CV Formatter** (`cv-md/1.1` plain-text career data model, open-standard agent skills, and supporting Python + Typst CLI).
 
 **Repo:** [github.com/ivans3m/cv-formatter](https://github.com/ivans3m/cv-formatter) · **Branch:** `main` · **License:** MIT
 

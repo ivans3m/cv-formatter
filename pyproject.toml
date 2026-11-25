@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cvfmt"
 version = "0.2.0"
-description = "Validate and render cv-md/1.0 Markdown CVs into clean, minimalist, ATS- and LLM-readable PDFs."
+description = "Reference local CLI for the cv-md/1.1 plain-text career data model: validate, tailor, import, and render minimalist ATS/LLM-readable PDFs."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"

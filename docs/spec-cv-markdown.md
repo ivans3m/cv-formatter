@@ -1,27 +1,45 @@
-# Specification: Canonical Markdown CV Format (`cv-md/1.1`)
+# Specification: Canonical Markdown CV Data Model (`cv-md/1.1`)
 
-**Status:** Draft v1.1 *(backward-compatible with `cv-md/1.0`)*  
-**Scope:** Single source-of-truth plain-text CV format designed for equal readability by humans, ATS parsers, LLMs, and deterministic PDF rendering.  
+**Status:** v1.1 *(shipped in `v0.2.0`; backward-compatible with `cv-md/1.0`)*  
+**Scope:** Single source-of-truth plain-text career data model designed for AI-driven workflows, human readability, ATS parsing, and deterministic PDF rendering.  
 **Default Target:** European market (A4, CEFR languages, GDPR-clean personal metadata).
 
 ---
 
-## 1. Design Principles
+## 1. Design Principles & AI-Workflow Rationale
 
-1. **Readable as plain text**: Valid CommonMark Markdown with zero custom template tags or conditional syntax.
-2. **Unambiguous entity binding**: Roles, companies, dates, locations, and bullets follow a strict, predictable hierarchy so neither ATS parsers nor LLMs misattribute tenure or achievements.
-3. **Visual-text parity**: Every piece of information exists as plain Unicode text. No icon-only labels, no visual rating bars, no hidden text.
-4. **One schema, two file roles**: The exact same schema is used for both a ready-to-send CV (`cv.md`, target 1–2 pages) and an optional career archive (`cv-master.md`, uncapped length).
+Most career documents fail in AI-driven workflows because they treat a CV as a **visual layout** (PDF/DOCX) rather than **structured data**. When an agent edits a PDF export or free-form prose, every tailoring pass drops history, blurs dates and promotions, or quietly introduces unverified claims. `cv-md/1.1` is designed as a lightweight data model first; linters, skills, and PDF renderers are secondary consumers of the file.
+
+### Core Principles
+
+1. **Readable as plain text, strict as a schema:** Valid UTF-8 CommonMark Markdown with zero custom template tags or conditional macros. Any human can edit and `git diff` it directly; any LLM or deterministic parser can read its AST unambiguously.
+2. **Three-layer single-file architecture:**
+   - **Typed YAML frontmatter** for structured identity, contact, EU work-right/availability metadata, locale settings, and tailoring state—never career prose.
+   - **Canonical CommonMark body** for the public, renderable CV (`## Summary` through `## Interests`).
+   - **Non-exported `## Facts` memory bank** for private candidate context, preferences, interview notes, and archived items trimmed during tailoring.
+3. **Unambiguous entity binding:** Roles, nested promotions, ISO dates, locations, optional company context, and impact bullets follow a strict heading/metadata hierarchy so neither ATS parsers nor LLMs misattribute tenure, scope, or achievements.
+4. **One schema across the entire lifecycle:** A 6-page `cv-master.md` career archive and a tight 2-page tailored `cv-<target>.md` obey the exact same grammar. Because `## Facts` travels with the file, compressing a CV for one vacancy is **lossless**—cut bullets are archived, not deleted.
+5. **Explicit epistemic boundaries:** `tailor_mode: strict|dreamer` and the `**(Aspirational)**` bullet prefix separate verified career evidence from reach-role hypotheses at the data-model level, preventing AI agents from silently hallucinating into application PDFs.
+6. **Strict visual-text parity:** Every public fact exists as plain Unicode text—no icon-only labels, no visual rating bars, no hidden keywords.
+
+### Why Not JSON, Raw YAML, or PDF/DOCX?
+
+| Format | Human Editing & Git Diff | LLM Native Read/Write | Lossless Tailoring | Deterministic PDF / ATS |
+| :--- | :--- | :--- | :--- | :--- |
+| **PDF / DOCX** | Poor (binary / layout-coupled) | Fragile (column interleaving, lost hierarchy) | No (manual copies drift) | Layout-dependent |
+| **JSON Resume** | Noisy (braces, quotes, escaped newlines) | Syntax-error prone on long prose edits | No built-in archive layer | Strong |
+| **YAML-only (e.g. RenderCV)** | Moderate (prose trapped in YAML strings + design config) | Mixes styling keys with career facts | No built-in archive layer | Strong |
+| **`cv-md/1.1` (YAML + CommonMark)** | **Clean plain text & line-level diffs** | **Native token & heading structure** | **Built-in (`## Facts`)** | **100% linear, verified** |
 
 ---
 
 ## 2. File Structure
 
-A valid CV Markdown file consists of:
-1. A **YAML frontmatter block** delimited by `---` at the top of the file (structured contact & document metadata only; no career prose).
-2. A **CommonMark body** composed of canonical `##` sections.
+A valid `cv-md/1.1` file consists of:
+1. A **YAML frontmatter block** delimited by `---` at the top of the file (structured contact, EU metadata, and document/tailoring state only).
+2. A **CommonMark body** composed of canonical `##` sections, optionally ending with the non-exported `## Facts` memory bank.
 
-File encoding **must** be UTF-8 (without BOM), LF line endings.
+File encoding **must** be UTF-8 (without BOM) with LF line endings.
 
 ---
 
@@ -75,30 +93,30 @@ The default schema does **not** include `date_of_birth`, `age`, `marital_status`
 
 ## 4. Canonical Body Sections
 
-Top-level sections use `##` headings. To maximize ATS taxonomy recognition and LLM consistency, use only these canonical English headings (or their exact localized equivalents if `lang` is non-English):
+Top-level sections use `##` headings. To maximize ATS taxonomy recognition and LLM consistency, use only these 14 canonical English headings (or their exact localized equivalents if `lang` is non-English):
 
-| Section Heading | Required | Recommended Order | Content Format |
-| :--- | :--- | :--- | :--- |
-| `## Summary` | No | 1 | 1 tight paragraph (2–4 lines, ~40–65 words). No bullet lists. |
-| `## Experience` | **Yes** | 2 | Reverse-chronological entries (`###` / optional `####`), including optional 1-line company context and career breaks. |
-| `## Projects` | No | 3 | Reverse-chronological or priority-ordered entries (`###`). |
-| `## Skills` | No | 4 | Categorized bullet list (`- **Category:** Item 1, Item 2`). |
-| `## Education` | No | 5 | Reverse-chronological entries (`###`). |
-| `## Languages` | No | 6 | Bullet list with CEFR levels (`- **Language:** Level`). |
-| `## Certifications` | No | 7 | Compact bullet list with issuer, date/expiry, optional credential ID & verify link (`- **Name** — Issuer (YYYY-MM) \| [Verify](url)`). |
-| `## Awards` | No | 8 | Compact bullet list (`- **Award** — Grantor (YYYY) — Optional 1-line context`). |
-| `## Speaking` | No | 9 | Compact bullet list (`- **Talk Title** — Event (YYYY-MM) \| [Slides](url)`). |
-| `## Publications` | No | 10 | Compact bullet list (`- **Title** — Venue (YYYY)` with optional link). |
-| `## Volunteering` | No | 11 | Reverse-chronological entries (`### Role — Organization`) or compact bullets. |
-| `## Courses` | No | 12 | Compact bullet list for bootcamps, MOOCs, or executive training (`- **Course** — Provider (YYYY)`). |
-| `## Interests` | No | 13 | Optional 1–2 concise lines max (`- **Interests:** Item 1, Item 2`). |
-| `## Facts` | No | 14 | **Markdown-only (never exported to PDF).** Categorized `Name — Description` bullets + optional `###` subheadings storing candidate facts, preferences, and trimmed items for lossless tailoring. |
+| Section Heading | Required | Exported to PDF | Recommended Order | Content Format |
+| :--- | :--- | :--- | :--- | :--- |
+| `## Summary` | No | Yes | 1 | 1 tight paragraph (2–4 lines, ~40–65 words). No bullet lists. |
+| `## Experience` | **Yes** | Yes | 2 | Reverse-chronological entries (`###` / optional `####`), including optional 1-line company context and career breaks. |
+| `## Projects` | No | Yes | 3 | Reverse-chronological or priority-ordered entries (`###`). |
+| `## Skills` | No | Yes | 4 | Categorized bullet list (`- **Category:** Item 1, Item 2`). |
+| `## Education` | No | Yes | 5 | Reverse-chronological entries (`###`). |
+| `## Languages` | No | Yes | 6 | Bullet list with CEFR levels (`- **Language:** Level`). |
+| `## Certifications` | No | Yes | 7 | Compact bullet list with issuer, date/expiry, optional credential ID & verify link (`- **Name** — Issuer (YYYY-MM) \| [Verify](url)`). |
+| `## Awards` | No | Yes | 8 | Compact bullet list (`- **Award** — Grantor (YYYY) — Optional 1-line context`). |
+| `## Speaking` | No | Yes | 9 | Compact bullet list (`- **Talk Title** — Event (YYYY-MM) \| [Slides](url)`). |
+| `## Publications` | No | Yes | 10 | Compact bullet list (`- **Title** — Venue (YYYY)` with optional link). |
+| `## Volunteering` | No | Yes | 11 | Reverse-chronological entries (`### Role — Organization`) or compact bullets. |
+| `## Courses` | No | Yes | 12 | Compact bullet list for bootcamps, MOOCs, or executive training (`- **Course** — Provider (YYYY)`). |
+| `## Interests` | No | Yes | 13 | Optional 1–2 concise lines max (`- **Interests:** Item 1, Item 2`). |
+| `## Facts` | No | **No** | 14 | **Markdown-only memory bank.** Categorized `Name — Description` bullets + optional `###` subheadings storing candidate facts, preferences, and trimmed items for lossless tailoring. |
 
 *Note*: For junior candidates (0–2 years), `## Education` may be placed before `## Experience`.
 
 ### 4.1 Localized EU Canonical Headings (`nl`, `de`, `fr`)
 
-When `lang` is Dutch (`nl`), German (`de`), or French (`fr`), the validator, Typst renderer, verifier, and tailor pipeline recognize these localized headings as canonical equivalents with zero `NON_CANONICAL_SECTION` warnings:
+When `lang` is Dutch (`nl`), German (`de`), or French (`fr`), the validator, renderer, verifier, and tailor pipeline recognize these localized headings as canonical equivalents with zero `NON_CANONICAL_SECTION` warnings:
 
 | Canonical (`en`) | Dutch (`nl`) | German (`de`) | French (`fr`) |
 | :--- | :--- | :--- | :--- |
@@ -221,7 +239,7 @@ Use `## Certifications` strictly for accredited vendor, industry, or regulatory 
 
 ### 5.8 Optional Sections: `## Awards`, `## Speaking`, `## Publications`, `## Volunteering`, `## Courses`, `## Interests`
 
-All optional sections render in the single-column Warm Editorial layout (compact spacing for bullet-only sections):
+All optional sections render in the single-column layout (compact spacing for bullet-only sections):
 
 ```markdown
 ## Awards
@@ -256,19 +274,13 @@ All optional sections render in the single-column Warm Editorial layout (compact
 
 ### 5.9 `## Facts` (Markdown-Only Memory Bank — Not Exported to PDF)
 
-`## Facts` is an optional, canonical, **non-rendered** section stored only in `.md` files. It solves the lossy-compression problem of CV editing and tailoring:
+`## Facts` is an optional, canonical, **non-rendered** section stored only in `.md` files. It solves the lossy-compression problem of CV editing and AI tailoring:
 
-- **Never exported to PDF**: `cvfmt render` completely omits `## Facts`, and `cvfmt render --verify` asserts that `## Facts` content does not leak into the PDF text layer.
-- **Format**: Categorized **Name — Description** bullets (`- **<Type: Name>** — <Description>`), optionally grouped under `###` subheadings (e.g., `### Target Roles & Preferences`, `### Extra Metrics & Context`, `### Archived Roles & Projects`).
-- **Self-contained tailoring**: When creating a tailored CV from a master CV (or tweaking an existing CV), `## Facts` is carried forward and any trimmed/hidden items are moved into `## Facts` so every `.md` file remains lossless and re-tailorable.
-- **Validation behavior**: `[TODO: ...]` markers and non-date `###` subheadings inside `## Facts` do **not** fail `cvfmt validate` or block PDF rendering. Skills mentioned only in `## Facts` do **not** count as public evidence for `## Skills` (since recruiters and ATS parsers never see `## Facts`).
-- **Privacy note**: Because `## Facts` may hold private context (notice period, target compensation, candid notes), avoid publishing the raw `.md` file publicly without reviewing `## Facts` first.
-
-### 5.10 Role tailoring & dreamer markers
-
-- **Strict tailored CVs** (`tailor_mode: strict` or absent): renderable bullets must be verifiable; no `**(Aspirational)**` prefix.
-- **Dreamer CVs** (`tailor_mode: dreamer`): imagined or inferred claims in renderable sections **must** start with `**(Aspirational)** `. Validation emits `ASPIRATIONAL_BULLET` warnings; `cvfmt render` omits aspirational bullets unless `--allow-aspirational`.
-- **CLI strict tailor**: `cvfmt tailor JOB.txt --base cv-master.md -o cv-target.md --mode strict` performs deterministic reorder/trim without LLM summary rewrites.
+- **Never exported to PDF:** `cvfmt render` completely omits `## Facts`, and `cvfmt render --verify` asserts that `## Facts` content does not leak into the PDF text layer.
+- **Format:** Categorized **Name — Description** bullets (`- **<Type: Name>** — <Description>`), optionally grouped under `###` subheadings (e.g., `### Target Roles & Preferences`, `### Extra Metrics & Context`, `### Archived Roles & Projects`, `### Dreamer rationale`).
+- **Self-contained tailoring:** When creating a tailored CV from a master CV (or tweaking an existing CV), `## Facts` is carried forward and any trimmed/hidden items are moved into `## Facts` so every `.md` file remains lossless and re-tailorable.
+- **Validation behavior:** `[TODO: ...]` markers and non-date `###` subheadings inside `## Facts` do **not** fail `cvfmt validate` or block PDF rendering. Skills mentioned only in `## Facts` do **not** count as public evidence for `## Skills` (since recruiters and ATS parsers never see `## Facts`).
+- **Privacy note:** Because `## Facts` may hold private context (notice period, target compensation, candid notes), avoid publishing the raw `.md` file publicly without reviewing `## Facts` first.
 
 ```markdown
 ## Facts
@@ -281,23 +293,32 @@ All optional sections render in the single-column Warm Editorial layout (compact
 - **Skill: Origami** — Advanced modular paper folding (personal interest; keep off PDF).
 ```
 
+### 5.10 Epistemic Tailoring Markers (`strict` vs. `dreamer`)
+
+- **Strict tailored CVs** (`tailor_mode: strict` or absent): renderable bullets must be verifiable; no `**(Aspirational)**` prefix is permitted (`ASPIRATIONAL_IN_STRICT` hard error).
+- **Dreamer CVs** (`tailor_mode: dreamer`): inferred or reach-role claims in renderable sections **must** start with `**(Aspirational)** `. Validation emits `ASPIRATIONAL_BULLET` warnings; `cvfmt render` strips aspirational bullets from PDFs by default unless `--allow-aspirational` is passed explicitly for an internal gap-analysis export.
+
 ---
 
 ## 6. Validation & Linting Contract
 
-| Severity | Rule | Behavior |
-| :--- | :--- | :--- |
-| **Error** | Missing or unsupported `schema` | Fail validation / block render |
-| **Error** | Missing `name` or invalid `email` | Fail validation / block render |
-| **Error** | Invalid `paper` value (not `a4` or `letter`) | Fail validation / block render |
-| **Error** | Malformed date string (not `YYYY-MM`, `YYYY`, or `Present`) | Fail validation / block render |
-| **Error** | Unresolved `[TODO: ...]` placeholder in frontmatter or renderable body sections | Fail validation (overrideable with `--allow-todos`; `[TODO]` inside non-exported `## Facts` is ignored) |
-| **Warning** | Non-canonical `##` section heading | Warn about ATS taxonomy risk |
-| **Warning** | `## Skills` item not referenced anywhere in `## Experience` or `## Projects` | Warn about LLM rubric evidence gap |
-| **Warning** | Missing `## Languages` section | Soft EU market reminder |
-| **Warning** | Rendered PDF exceeds 2 pages (or overflows <5 lines onto an extra page) | Warn after compilation |
-| **Error** | `**(Aspirational)**` in renderable sections without `tailor_mode: dreamer` | Fail validation (`ASPIRATIONAL_IN_STRICT`) |
-| **Warning** | Aspirational bullet when `tailor_mode: dreamer` | Warn (`ASPIRATIONAL_BULLET`) |
+| Severity | Code | Rule | Behavior |
+| :--- | :--- | :--- | :--- |
+| **Error** | `SCHEMA_VERSION` | Missing or unsupported `schema` (not `cv-md/1.1` or `cv-md/1.0`) | Fail validation / block render |
+| **Error** | `MISSING_NAME` | Missing frontmatter `name` | Fail validation / block render |
+| **Error** | `INVALID_EMAIL` | Missing or malformed `email` | Fail validation / block render |
+| **Error** | `INVALID_PAPER` | Invalid `paper` value (not `a4` or `letter`) | Fail validation / block render |
+| **Error** | `INVALID_ACCENT` | Invalid `accent` value (not 6-digit hex) | Fail validation / block render |
+| **Error** | `MISSING_EXPERIENCE` | Missing `## Experience` (or localized equivalent) | Fail validation / block render |
+| **Error** | `INVALID_DATE` | Malformed date string (not `YYYY-MM`, `YYYY`, or `Present`) | Fail validation / block render |
+| **Error** | `UNRESOLVED_TODO` | Unresolved `[TODO: ...]` in frontmatter or renderable body | Fail validation (overrideable via `--allow-todos`; `[TODO]` inside `## Facts` is ignored) |
+| **Error** | `ASPIRATIONAL_IN_STRICT` | `**(Aspirational)**` bullet without `tailor_mode: dreamer` | Fail validation / block render |
+| **Warning** | `NON_CANONICAL_SECTION` | Non-canonical `##` heading (outside EN/NL/DE/FR table) | Warn about ATS taxonomy risk |
+| **Warning** | `MISSING_CEFR_LEVEL` | `## Languages` entry lacks a valid CEFR / native token | Warn about EU convention |
+| **Warning** | `MISSING_LANGUAGES` | No `## Languages` section present | Soft EU market reminder |
+| **Warning** | `ASPIRATIONAL_BULLET` | Aspirational bullet when `tailor_mode: dreamer` | Warn before submitting |
+| **Warning** | `UNGROUNDED_SKILLS` | `## Skills` item not referenced in `## Experience` or `## Projects` | Warn about LLM rubric evidence gap |
+| **Warning** | *(post-render)* | Rendered PDF exceeds 2 pages (or overflows <5 lines onto an extra page) | Warn during `--verify` |
 
 ---
 
@@ -310,6 +331,7 @@ name: Lukas Müller
 headline: Senior Backend Engineer
 location: Amsterdam, Netherlands
 work_authorization: EU Citizen
+availability: 1 month notice
 email: lukas.mueller@example.eu
 phone: "+31 6 2345 6789"
 links:
@@ -361,4 +383,12 @@ Backend engineer with 7 years of experience building high-throughput payment and
 - **German:** Native
 - **English:** C2 (Proficient / Working Language)
 - **Dutch:** B1 (Intermediate)
+
+## Facts
+
+### Target Roles & Preferences
+- **Preference: Work Setup** — Open to hybrid Amsterdam or remote EU; 1 month notice period.
+
+### Archived Projects & Context
+- **Project: Internal TypeScript Admin Portal** — Built merchant reconciliation UI at Acme (2022); omitted from PDF to keep focus on backend systems.
 ```
